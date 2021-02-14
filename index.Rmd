@@ -1,7 +1,9 @@
 ---
-title: "index"
+title: "Cognitive Musicology Portfolio"
 output: html_document
 ---
+# Analysing daily mixes and discover weekly playlists
+
 
 As an active Spotify user I often contemplate about maintaining an enormous playlist of songs that I like. However, in my opinion, if you really like a song you'll remember it, so there is no need for a playlist to remind you of what songs you like.
 That being said, I do need some type of playlist to get my day started. Therefore I listen to my daily mixes almost exclusively. Occasionally I listen to my discover weekly playlist that always surprises me with its quality of recommended songs. Somehow these playlists seem fresh every time while at the same time containing a lot of songs that I know and love. 
@@ -30,7 +32,7 @@ library(ggplot2)
 
 ```{r}
 ## This does not work, get_spotify_authorization_code() redirects me to an invalid URI 
-get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit = 50,authorization = get_spotify_authorization_code())
+#get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit = 50,authorization = get_spotify_authorization_code())
 ```
 
 
