@@ -35,7 +35,7 @@ library(ggplot2)
 #get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit = 50,authorization = get_spotify_authorization_code())
 ```
 
-
+At the moment I analyzed if there is a difference between my first two discover weekly playlists. Once I get the authorization working properly I can easily retrieve my daily mixes (which are about 48 at the moment). 
 
 
 ```{r}
@@ -54,12 +54,43 @@ W1_2 <- bind_rows(
 
 ```{r}
 W1_2 %>%
-  ggplot(aes(x = valence, y = energy,color = tempo,size = loudness,shape=factor(mode))) + geom_point(alpha=0.5) +facet_wrap(~cat)
+  mutate(
+    mode = ifelse(mode == 0, "Minor", "Major")
+  ) %>%
+  ggplot(aes(x = valence, y = energy,color = tempo,size = loudness,shape=mode)) + geom_point(alpha=0.5) +facet_wrap(~cat)
 ```
+In terms of energy/valence the two discover weeklies are distributed fairly similar.
+However Weekly 1 is more scattered whereas weekly 2 can be divided into two groups (seen in next plot). Loudness is pretty much the same among all songs. 
+Both playlists consist of mostly major songs which, honestly, was to my surprise. 
+Something interesting in weekly 2 is that the songs with highest valence and highest energy are songs in a minor key.
 ```{r}
 W1_2 %>%
-  ggplot(aes(key)) + geom_histogram(binwidth=0.7) + facet_wrap(~cat)
+  ggplot(aes(x = cat,y=energy)) + geom_violin()
+```
+```{r}
+int2key <- function(i) {
+  out = case_when(
+    i == 0 ~ "C",
+    i == 1 ~ "C#",
+    i == 2 ~ "D",
+    i == 3 ~ "D#",
+    i == 4 ~ "E",
+    i == 5 ~ "F",
+    i == 6 ~ "F#",
+    i == 7 ~ "G",
+    i == 8 ~ "G#",
+    i == 9 ~ "A",
+    i == 10 ~ "A#",
+    i == 11 ~ "B"
+  )
+  return(out)
+}
+  
+W1_2 %>%
+  mutate(key = int2key(key)) %>%
+  ggplot(aes(key)) +geom_bar(binwidth=0.6,fill="light green",alpha=0.8) + facet_wrap(~cat)
 ```
 
+Weekly 1 seems to be mostly in "A". This makes sense because the songs in that playlist have a lot more simplicity to them. And A is a pretty "go to" key in my opinion.
 
 
