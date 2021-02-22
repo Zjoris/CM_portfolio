@@ -1,8 +1,13 @@
 ---
 title: "Cognitive Musicology Portfolio"
-output: html_document
+output: 
+  flexdashboard::flex_dashboard:
+    theme: journal
 ---
-# Analysing daily mixes and discover weekly playlists
+
+Overview
+=============================
+### Analysing daily mixes and discover weekly playlists
 
 
 As an active Spotify user I often contemplate about maintaining an enormous playlist of songs that I like. However, in my opinion, if you really like a song you'll remember it, so there is no need for a playlist to remind you of what songs you like.
@@ -20,54 +25,95 @@ There is two things I hope to discover:
 My daily mixes usually range from playlists containing Pixies and the Velvet Underground to playlists containing Miles Davis and Charlie Parker to playlists containing Eagles of death metal and the Black keys to playlists containing Canned heat and Roy Buchannan. Sometimes my daily mixes vary a lot with regard to each other, causing my discover weekly playlist to be a total mess sometimes. This will be very interesting to analyze.
 
 
-```{r}
+```{r include=FALSE}
 library(dbplyr)
 library(tidyverse)
 library(spotifyr)
 library(ggplot2)
+library(compmus)
+library(plotly)
 ```
 
 
 
 
-```{r}
-## This does not work, get_spotify_authorization_code() redirects me to an invalid URI 
-#get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit = 50,authorization = get_spotify_authorization_code())
+```{r include=FALSE}
+playlists <- get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit=50)
+for (i in c(50,100,150)) {
+  playlists <- bind_rows(
+    playlists, get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit=50,offset = i)
+  )
+}
+tracks <- tibble()
+for (pl in unlist(playlists["id"])) {
+  tracks <- bind_rows(
+    tracks, get_playlist_audio_features("",pl)
+  )
+}
 ```
 
-At the moment I analyzed if there is a difference between my first two discover weekly playlists. Once I get the authorization working properly I can easily retrieve my daily mixes (which are about 48 at the moment). 
+```{r include=FALSE}
+get_week_n <- function(day) {
+  day[is.na(day)] <- "14/02"
+  d = as.integer(substr(day,0,2))
+  m = as.integer(substr(day,4,6))
+  if(m==2) {
+    nmbr = case_when(
+      d < 8 ~ 1,
+      d %in% 8:14 ~ 2,
+      d %in% 15:21 ~ 3,
+    )
+    return(nmbr)
+  }
+}
+
+tracks <- tracks %>%
+  mutate(
+    type = ifelse(substr(playlist_name,0,1) == 'W' ,"Discover Weekly","Daily Mix"),
+    Day = ifelse(type=="Daily Mix",substr(playlist_name,3,7),NA),
+    Weeknmbr = ifelse(type=="Daily Mix",get_week_n(Day),substr(playlist_name,7,7))
+  ) 
+```
+Analysis of the weekly playlists {.storyboard}
+===========================================
 
 
-```{r}
-# Get playlists
+```{r include=FALSE}
 
-W1 <- get_playlist_audio_features("","63hsDrXOJGXHlVIiTHyLS9")
-W2 <- get_playlist_audio_features("","456ZJtJ9UCUSKr3vqzUMWK")
 
-W1_2 <- bind_rows(
-  W1 %>% mutate(cat = "weekly 1"),
-  W2 %>% mutate(cat = "weekly 2")
-)
+W1_2 <- tracks %>% 
+  filter(type == "Discover Weekly")
 
 ```
 
 
-```{r}
+### Valence, energy, major/minor and tempo
+
+```{r echo=FALSE}
 W1_2 %>%
   mutate(
     mode = ifelse(mode == 0, "Minor", "Major")
   ) %>%
-  ggplot(aes(x = valence, y = energy,color = tempo,size = loudness,shape=mode)) + geom_point(alpha=0.5) +facet_wrap(~cat)
+  ggplot(aes(x = valence, y = energy,color = tempo,shape=mode)) + geom_point(alpha=0.5,size=4) +facet_wrap(~Weeknmbr)
 ```
+
+***
+
 In terms of energy/valence the two discover weeklies are distributed fairly similar.
 However Weekly 1 is more scattered whereas weekly 2 can be divided into two groups (seen in next plot). Loudness is pretty much the same among all songs. 
 Both playlists consist of mostly major songs which, honestly, was to my surprise. 
 Something interesting in weekly 2 is that the songs with highest valence and highest energy are songs in a minor key.
-```{r}
+
+
+### Change of energy in songs in the discover weekly playlists
+```{r echo=FALSE}
 W1_2 %>%
-  ggplot(aes(x = cat,y=energy)) + geom_violin()
+  ggplot(aes(x = Weeknmbr,y=energy)) + geom_violin()
 ```
-```{r}
+
+
+### Keys 
+```{r echo=FALSE}
 int2key <- function(i) {
   out = case_when(
     i == 0 ~ "C",
@@ -88,9 +134,338 @@ int2key <- function(i) {
   
 W1_2 %>%
   mutate(key = int2key(key)) %>%
-  ggplot(aes(key)) +geom_bar(binwidth=0.6,fill="light green",alpha=0.8) + facet_wrap(~cat)
+  ggplot(aes(key)) +geom_bar(fill="light green",alpha=0.8) + facet_wrap(~Weeknmbr)
 ```
+
+***
 
 Weekly 1 seems to be mostly in "A". This makes sense because the songs in that playlist have a lot more simplicity to them. And A is a pretty "go to" key in my opinion.
 
 
+Daily v Weekly
+================================================================
+
+Column
+-------------------------------------------------------
+
+### Valence and Energy ###
+
+```{r echo=FALSE}
+#print(unlist(playlists["id"]))
+tracks %>%
+  
+  mutate(
+    mode = ifelse(mode == 0, "Minor", "Major")
+  ) %>%
+  ggplot(aes(x = valence, y = energy,color = playlist_name,shape=mode)) + geom_point(alpha=0.5)
+```
+
+```{r eval=FALSE, include=FALSE}
+tracks %>%
+  mutate(key = int2key(key)) %>%
+  ggplot(aes(key, fill = playlist_name)) +geom_bar(alpha=0.8) + facet_wrap(~Weeknmbr)
+```
+Column
+----------------------------------------------------------
+### Some Explanation
+Having some issues with Cairo and plotly, Will fix and then this will look Beautiful
+
+
+Chroma Features{.storyboard}
+=====================================================================
+### Chromagraphs for two versions of Paranoid android
+
+
+#### Radiohead
+
+```{r}
+song <-
+  get_tidy_audio_analysis("6LgJvl0Xdtc73RJ1mmpotq") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+
+song2 <-
+  get_tidy_audio_analysis("2sowiwuhxt4nLIWP6vWJOa") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+  
+
+song %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("Paranoid Android by Radiohead") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+
+```
+
+****
+
+Same song. Drastically differently performed. You can see that both versions have a similar structure regarding the chord changes but the changes are at different moments. Also Brad Mehldau really emphasizes one chord whereas the Radiohead version has the chroma magnitude more spread out at each time. A reason for this is probably that the Brad Mehldau version is mostly piano.
+Also note that the original (Radiohead) version ends the song mostly in A with some magnitude in D E and F as well. Brad Mehldau takes this and turns it around, putting a lot of the energy in D E and F and less in A. 
+
+#### Brad Mehldau
+
+```{r}
+
+song2 %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("Paranoid Android by Brad Mehldau") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+
+```
+
+
+
+### Trying to find a dynamic warp path for these two versions is quite hard
+```{r}
+
+dtw <- compmus_long_distance(
+  song %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  song2 %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  feature = pitches,
+  method = "aitchison"
+) %>%
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_equal() +
+  labs(x = "Radiohead", y = "Brad Mehldau") +
+  ggtitle("Paranoid Android DTW") +
+  theme_minimal() +
+  scale_fill_viridis_c(guide = NULL)
+
+dtw
+
+```
+
+*** 
+
+Due to the completely different timings in the song and generally different approach to the song, they are completely different songs according to Dynamic Time Warping. Let's take a look at another example.
+
+### "Hey Joe", both covers, one very popular, one less popular (but really should be)
+
+```{r}
+Jimi <- get_tidy_audio_analysis("0NWPxcsf5vdjdiFUI8NgkP") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+  
+Roy <- get_tidy_audio_analysis("44uQ9n6xSO7vMA7z8Cciwo") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+
+```
+
+
+#### Roy Buchannan 
+
+```{r}
+Roy %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("Hey Joe(live Austin Texas) by Roy Buchannan") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+**** 
+
+Both have a heavy concentration in E. But are very different for the rest. 
+
+#### Jimi Hendrix
+
+```{r}
+Jimi %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("Hey Joe by Jimi Hendrix") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+### DTW path is even less observable now
+
+```{r}
+compmus_long_distance(
+  Roy %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  Jimi %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  feature = pitches,
+  method = "aitchison"
+) %>%
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_equal() +
+  labs(x = "Roy", y = "Jimi") +
+  ggtitle("Hey Joe") +
+  theme_minimal() +
+  scale_fill_viridis_c(guide = NULL)
+```
+
+***
+
+Even though when you listen to both songs you can immediately link them (probably due to the lyrics), they are nothing alike due to DTW.
+
+Still, when I listen to these two covers I feel that they are more similar than the two "Paranoid Android" versions which does contain some clearer warping paths (upper right area)
+
+(Side note if you don't know the Roy Buchanan version and you like the Jimi Hendrix version really give Roy's version a listen)
+
+
+### Twelve bar blues 
+
+```{r}
+Cantquit <- get_tidy_audio_analysis("62QInSlXQI11BR9ycVWjd6") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+  
+Thrill <- get_tidy_audio_analysis("4NQfrmGs9iQXVQI9IpRhjM") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+
+Crossroads <- get_tidy_audio_analysis("6PUabSMXmPnZna361Wwmf7") %>%
+  select(segments) %>%
+  unnest(segments) %>%
+  select(start, duration, pitches)
+```
+
+#### Crossroads by Cream
+
+```{r}
+Crossroads %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("the Crossroads by Cream") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+
+
+#### I can't quit you baby by Led Zeppelin
+
+```{r}
+Cantquit %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  ggtitle("I Cant Quit You Baby by Led Zeppelin ") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+
+### DTW
+
+```{r}
+compmus_long_distance(
+  Crossroads %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  Cantquit %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
+  feature = pitches,
+  method = "aitchison"
+) %>%
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_equal() +
+  labs(x = "Crossroads", y = "I Can't quit you baby") +
+  ggtitle("Twelve Bar Blues") +
+  theme_minimal() +
+  scale_fill_viridis_c(guide = NULL)
+```
+
+*** 
+
+I'm pretty sure there is a example that shows two 12 bar blues tracks with a really visible dtw line. But I haven't found the example yet. 
+
+
+### Concluding thoughts
+
+Covers don't have to sound like eachother. (Will expand in the future)
