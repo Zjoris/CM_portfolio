@@ -1,5 +1,5 @@
 ---
-title: "Cognitive Musicology Portfolio"
+title: "Computational Musicology Portfolio"
 output: 
   flexdashboard::flex_dashboard:
     theme: journal
@@ -24,6 +24,7 @@ There is two things I hope to discover:
 
 My daily mixes usually range from playlists containing Pixies and the Velvet Underground to playlists containing Miles Davis and Charlie Parker to playlists containing Eagles of death metal and the Black keys to playlists containing Canned heat and Roy Buchannan. Sometimes my daily mixes vary a lot with regard to each other, causing my discover weekly playlist to be a total mess sometimes. This will be very interesting to analyze.
 
+spotify user id of me: `r Sys.getenv("SPOTIFY_MY_ID")`.
 
 ```{r include=FALSE}
 library(dbplyr)
@@ -32,6 +33,9 @@ library(spotifyr)
 library(ggplot2)
 library(compmus)
 library(plotly)
+library(Cairo)
+library(purrr)
+library(ggpubr)
 ```
 
 
@@ -62,8 +66,12 @@ get_week_n <- function(day) {
       d < 8 ~ 1,
       d %in% 8:14 ~ 2,
       d %in% 15:21 ~ 3,
+      d %in% 22:28 ~ 4
     )
-    return(nmbr)
+  if(m==3) {
+    d %in% 1:7 ~ 5
+  }
+    return(as.integer(nmbr))
   }
 }
 
@@ -71,7 +79,7 @@ tracks <- tracks %>%
   mutate(
     type = ifelse(substr(playlist_name,0,1) == 'W' ,"Discover Weekly","Daily Mix"),
     Day = ifelse(type=="Daily Mix",substr(playlist_name,3,7),NA),
-    Weeknmbr = ifelse(type=="Daily Mix",get_week_n(Day),substr(playlist_name,7,7))
+    Weeknmbr = ifelse(type=="Daily Mix",map_chr(Day,get_week_n),substr(playlist_name,7,7))
   ) 
 ```
 Analysis of the weekly playlists {.storyboard}
@@ -81,7 +89,7 @@ Analysis of the weekly playlists {.storyboard}
 ```{r include=FALSE}
 
 
-W1_2 <- tracks %>% 
+W <- tracks %>% 
   filter(type == "Discover Weekly")
 
 ```
@@ -90,7 +98,7 @@ W1_2 <- tracks %>%
 ### Valence, energy, major/minor and tempo
 
 ```{r echo=FALSE}
-W1_2 %>%
+W %>%
   mutate(
     mode = ifelse(mode == 0, "Minor", "Major")
   ) %>%
@@ -107,7 +115,7 @@ Something interesting in weekly 2 is that the songs with highest valence and hig
 
 ### Change of energy in songs in the discover weekly playlists
 ```{r echo=FALSE}
-W1_2 %>%
+W %>%
   ggplot(aes(x = Weeknmbr,y=energy)) + geom_violin()
 ```
 
@@ -132,7 +140,7 @@ int2key <- function(i) {
   return(out)
 }
   
-W1_2 %>%
+W %>%
   mutate(key = int2key(key)) %>%
   ggplot(aes(key)) +geom_bar(fill="light green",alpha=0.8) + facet_wrap(~Weeknmbr)
 ```
@@ -145,20 +153,255 @@ Weekly 1 seems to be mostly in "A". This makes sense because the songs in that p
 Daily v Weekly
 ================================================================
 
-Column
+Column{.tabset}
 -------------------------------------------------------
-
-### Valence and Energy ###
 
 ```{r echo=FALSE}
 #print(unlist(playlists["id"]))
-tracks %>%
-  
-  mutate(
-    mode = ifelse(mode == 0, "Minor", "Major")
-  ) %>%
-  ggplot(aes(x = valence, y = energy,color = playlist_name,shape=mode)) + geom_point(alpha=0.5)
+
+ValEnMeans <- tracks %>% 
+  filter(Weeknmbr==1) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner1 <- tracks %>%
+  filter(Weeknmbr==1) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly1")
+
+
+ValEner1 <- ggplotly(ValEner1)
+ValEner1 <- ValEner1 %>% layout(
+  title = "Week 1 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+        buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE)),
+               label = "04/02"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE,TRUE)),
+               label = "05/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, FALSE,TRUE, FALSE, FALSE,TRUE, TRUE)),
+               label = "07/02")
+          
+          )))
+    )
+
+#ValEner1 <- ValEner1 %>% add_trace(type="scatter",x=W1$valence,y=W1$energy)
+
+ValEnMeans2 <- tracks %>% 
+  filter(Weeknmbr==2) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner2 <- tracks %>%
+  filter(Weeknmbr==2) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans2,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly2")
+
+
+ValEner2 <- ggplotly(ValEner2) %>% layout(
+  title = "Week 2 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+        buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE)),
+               label = "08/02"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE, TRUE)),
+               label = "09/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE, FALSE, FALSE,TRUE, FALSE, FALSE,FALSE,FALSE,TRUE,FALSE,FALSE, TRUE)),
+               label = "11/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, FALSE,FALSE, TRUE,FALSE,FALSE, FALSE,FALSE, TRUE,FALSE,FALSE, FALSE,FALSE, TRUE,FALSE,FALSE, FALSE,FALSE, TRUE,FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, TRUE)),
+               label = "12/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE,TRUE, FALSE, FALSE, FALSE, FALSE,TRUE, FALSE, FALSE, FALSE, FALSE,TRUE, FALSE, FALSE,FALSE, FALSE,TRUE, FALSE, FALSE,FALSE, FALSE,TRUE, TRUE)),
+               label = "14/02")
+          
+          )))
+    )
+
+ValEnMeans3 <- tracks %>% 
+  filter(Weeknmbr==3) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner3 <- tracks %>%
+  filter(Weeknmbr==3) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans3,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly3")
+
+
+ValEner3 <- ggplotly(ValEner3) %>% layout(
+  title = "Week 3 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+       buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE)),
+               label = "15/02"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE, TRUE)),
+               label = "17/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, TRUE)),
+               label = "18/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, TRUE)),
+               label = "19/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, TRUE)),
+               label = "20/02"),
+          
+           list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE, TRUE)),
+               label = "21/02")
+          
+          
+          )))
+    )
+
+ValEnMeans4 <- tracks %>% 
+  filter(Weeknmbr==4) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner4 <- tracks %>%
+  filter(Weeknmbr==4) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans4,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly4")
+
+
+ValEner4 <- ggplotly(ValEner4) %>% layout(
+  title = "Week 4 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+       buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE)),
+               label = "22/02"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE, TRUE)),
+               label = "23/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, TRUE)),
+               label = "24/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, TRUE)),
+               label = "25/02"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, TRUE)),
+               label = "27/02"),
+          
+           list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE, TRUE)),
+               label = "28/02")
+          
+          
+          )))
+    )
 ```
+
+### Valence and Energy 1 ###
+
+```{r}
+# ValEner1%>% htmlwidgets::onRender("
+# function(el, x) {
+# // when hovering over an element, do something
+# el.on('plotly_hover', function(d) {
+# image_location = https://i.scdn.co/image/ab67616d0000b273b6fccabcb9dbfa78a0026482;
+# // define image to be shown
+# var img = {
+# // location of image
+# source: image_location,
+# // top-left corner
+# x: 1,
+# y: 0,
+# sizex: 0.2,
+# sizey: 0.2,
+# xref: 'paper',
+# yref: 'paper'
+# };
+# // show image and annotation
+# Plotly.relayout(el.id, {
+# images: [img]
+# });
+# })
+# }
+# ")
+
+ValEner1
+```
+
+
+### Valence and Energy 2 ###
+
+```{r}
+ValEner2
+```
+
+
+### Valence and Energy 3 ###
+
+```{r}
+ValEner3
+```
+
+
+### Valence and Energy 4 ###
+
+```{r}
+ValEner4
+```
+
+
 
 ```{r eval=FALSE, include=FALSE}
 tracks %>%
@@ -168,7 +411,8 @@ tracks %>%
 Column
 ----------------------------------------------------------
 ### Some Explanation
-Having some issues with Cairo and plotly, Will fix and then this will look Beautiful
+Weeks 1-3 energy valence mean of DW playlists in the middle of means for daily mixes.
+Week 4 DW playlist mean outside of the daily mixes 
 
 
 Chroma Features{.storyboard}
@@ -469,3 +713,279 @@ I'm pretty sure there is a example that shows two 12 bar blues tracks with a rea
 ### Concluding thoughts
 
 Covers don't have to sound like eachother. (Will expand in the future)
+
+I Am pretty sure I will be removing this because I do not think this will be interesting for my portfolio. However analysis of chroma might be useful for similarity measures (Turning every DTW into a number by summing all the distances or something to see how similar two songs are chroma wise (very costly though)). 
+
+
+<!-- Check daily mix A (25/02). It contains Roy Buchannan, fugazi, steppenwolf and black sabbath (it's a mess).  -->
+
+Chroma and Timbre analyses for two completely different songs{.storyboard}
+=====================================
+
+
+### Miss Alissa by Eagles of Death metal and Heather by Billy Cobham
+
+So I took a look in terms of valence and energy for two songs that should be polar opposites according to valence and energy and boy is that right. 
+
+In the lower left corner we have, with a valence of 0.041, an energy rating of 0.0079 and a length of 8 minutes and 39 seconds, the smooth and shockingly calming "Heather" by Billy Cobham. 
+
+In the opposing upper right corner we have, with a valence of 0.877, energy rating of 0.992 and a length of 2 minutes and 38 seconds, you can't stop dancing to this one, "Miss Alissa" by Eagles of Death Metal. 
+
+I analysed differences in chromagrams, cepstograms and self similarity matrices. 
+
+
+```{r}
+msAlis <-
+  get_tidy_audio_analysis("1YIxmHt4EKS0gMs3L0mxQV") %>% # Change URI.
+  compmus_align(bars, segments) %>%                     # Change `bars`
+  select(bars) %>%                                      #   in all three
+  unnest(bars) %>%                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+
+Heather <-
+  get_tidy_audio_analysis("4mraRJO2iZA5WQ5dxlSQx9") %>% # Change URI.
+  compmus_align(bars, segments) %>%                     # Change `bars`
+  select(bars) %>%                                      #   in all three
+  unnest(bars) %>%                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+```
+
+
+```{r}
+ AT <- msAlis%>%
+  compmus_gather_timbre() %>%
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+
+ HT <- Heather %>%
+  compmus_gather_timbre() %>%
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+ 
+AP <- msAlis %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+
+HP <- Heather %>%
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
+  compmus_gather_chroma() %>% 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+```{r}
+ASSt <- msAlis %>%
+  compmus_self_similarity(timbre, "cosine") %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "")
+
+HSSt <- Heather %>%
+  compmus_self_similarity(timbre, "cosine") %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d,
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "") #+ xlim(200,350) + ylim(200,350)
+
+ASSp <- msAlis %>%
+  compmus_self_similarity(pitches, "cosine") %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d,
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "") 
+
+HSSp <- Heather %>%
+  compmus_self_similarity(pitches, "cosine") %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d,
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "") 
+```
+
+
+```{r}
+Pplot <- ggarrange(AP, HP, 
+          labels = c("Miss Alissa", "Heather"),
+          ncol = 1, nrow = 2) %>% 
+  annotate_figure(
+    top = text_grob("Chromagrams")
+  )
+
+Tplot <- ggarrange(AT, HT, 
+          labels = c("Miss Alissa", "Heather"),
+          ncol = 1, nrow = 2)%>% 
+  annotate_figure(
+    top = text_grob("Cepstograms")
+  )
+
+SStplot <- ggarrange(ASSt, HSSt, 
+          labels = c("Miss Alissa", "Heather"),
+          ncol = 2, nrow = 1)%>% 
+  annotate_figure(
+    top = text_grob("Self similarity matrices (timbre)")
+  )
+
+SSpplot <- ggarrange(ASSp, HSSp, 
+          labels = c("Miss Alissa", "Heather"),
+          ncol = 2, nrow = 1)%>% 
+  annotate_figure(
+    top = text_grob("Self similarity matrices (pitch)")
+  )
+```
+
+### Chroma comparisson
+
+```{r}
+Pplot
+```
+
+*** 
+
+Miss Alissa seems to be all over the place in terms of chroma, whilst Heather is more organized and stays close to F for the whole duration of the song. Of course Heather is a lot longer so it leaves a lot more room for organization and build up.
+
+### MFCC comparisson
+
+```{r}
+Tplot
+```
+
+*** 
+
+Miss Alissa seems to mostly concentrated in the first cepstral coefficients whilst Heather is concentrated more in the second and third. 
+
+First cepstral coefficient referring to loudness seems appropriate because Miss Alissa is quite loud and Heather is quite quiet. 
+
+Around 220 seconds the saxophone joins the song Heather which is observable in the cepstogram due to the distribution of magnitude getting more spread out. 
+
+
+### Self similarity matrices Timbre
+
+```{r}
+SStplot
+```
+
+***
+
+The self similarity matrices in terms of timbre show that Miss Alissa is fairly constant in terms of timbre whilst Heather shows a big change around 220 seconds which is because of the saxophone taking the lead. 
+
+
+### Self Similarity matrices Pitch
+
+```{r}
+SSpplot
+```
+
+*** 
+
+Now it's funny to see that the chromagram of Miss Alissa is complete chaos but the self similarity matrix is fairly constant and looks like one block implying that it might be quite chaotic but the chaos is very constant, which is actually a pretty good dexcription for the song. 
+
+On the other hand there is Heather that has a very organized chromagram that looks fairly constant but the self similarity matrix in terms of pitches looks a lot more complex than that of Miss Alissa. 
