@@ -68,11 +68,13 @@ get_week_n <- function(day) {
       d %in% 15:21 ~ 3,
       d %in% 22:28 ~ 4
     )
+  }
   if(m==3) {
-    d %in% 1:7 ~ 5
+    nmbr = case_when(
+      d %in% 1:7 ~ 5
+    )
   }
-    return(as.integer(nmbr))
-  }
+  return(as.integer(nmbr))
 }
 
 tracks <- tracks %>%
@@ -989,3 +991,145 @@ SSpplot
 Now it's funny to see that the chromagram of Miss Alissa is complete chaos but the self similarity matrix is fairly constant and looks like one block implying that it might be quite chaotic but the chaos is very constant, which is actually a pretty good dexcription for the song. 
 
 On the other hand there is Heather that has a very organized chromagram that looks fairly constant but the self similarity matrix in terms of pitches looks a lot more complex than that of Miss Alissa. 
+
+
+
+Key Estimation
+===========================
+
+Column
+----------------------------------------------------------
+
+```{r}
+circshift <- function(v, n) {
+  if (n == 0) v else c(tail(v, n), head(v, -n))
+}
+
+#      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
+major_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
+minor_chord <-
+  c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
+seventh_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+
+major_key <- c(5.0, 2.0, 3.5, 2.0, 4.5, 4.0, 2.0, 4.5, 2.0, 3.5, 1.5, 4.0) 
+minor_key <- c(5.0, 2.0, 3.5, 4.5, 2.0, 4.0, 2.0, 4.5, 3.5, 2.0, 1.5, 4.0) 
+
+chord_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:7", circshift(seventh_chord, 6),
+    "Gb:maj", circshift(major_chord, 6),
+    "Bb:min", circshift(minor_chord, 10),
+    "Db:maj", circshift(major_chord, 1),
+    "F:min", circshift(minor_chord, 5),
+    "Ab:7", circshift(seventh_chord, 8),
+    "Ab:maj", circshift(major_chord, 8),
+    "C:min", circshift(minor_chord, 0),
+    "Eb:7", circshift(seventh_chord, 3),
+    "Eb:maj", circshift(major_chord, 3),
+    "G:min", circshift(minor_chord, 7),
+    "Bb:7", circshift(seventh_chord, 10),
+    "Bb:maj", circshift(major_chord, 10),
+    "D:min", circshift(minor_chord, 2),
+    "F:7", circshift(seventh_chord, 5),
+    "F:maj", circshift(major_chord, 5),
+    "A:min", circshift(minor_chord, 9),
+    "C:7", circshift(seventh_chord, 0),
+    "C:maj", circshift(major_chord, 0),
+    "E:min", circshift(minor_chord, 4),
+    "G:7", circshift(seventh_chord, 7),
+    "G:maj", circshift(major_chord, 7),
+    "B:min", circshift(minor_chord, 11),
+    "D:7", circshift(seventh_chord, 2),
+    "D:maj", circshift(major_chord, 2),
+    "F#:min", circshift(minor_chord, 6),
+    "A:7", circshift(seventh_chord, 9),
+    "A:maj", circshift(major_chord, 9),
+    "C#:min", circshift(minor_chord, 1),
+    "E:7", circshift(seventh_chord, 4),
+    "E:maj", circshift(major_chord, 4),
+    "G#:min", circshift(minor_chord, 8),
+    "B:7", circshift(seventh_chord, 11),
+    "B:maj", circshift(major_chord, 11),
+    "D#:min", circshift(minor_chord, 3)
+  )
+
+key_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:maj", circshift(major_key, 6),
+    "Bb:min", circshift(minor_key, 10),
+    "Db:maj", circshift(major_key, 1),
+    "F:min", circshift(minor_key, 5),
+    "Ab:maj", circshift(major_key, 8),
+    "C:min", circshift(minor_key, 0),
+    "Eb:maj", circshift(major_key, 3),
+    "G:min", circshift(minor_key, 7),
+    "Bb:maj", circshift(major_key, 10),
+    "D:min", circshift(minor_key, 2),
+    "F:maj", circshift(major_key, 5),
+    "A:min", circshift(minor_key, 9),
+    "C:maj", circshift(major_key, 0),
+    "E:min", circshift(minor_key, 4),
+    "G:maj", circshift(major_key, 7),
+    "B:min", circshift(minor_key, 11),
+    "D:maj", circshift(major_key, 2),
+    "F#:min", circshift(minor_key, 6),
+    "A:maj", circshift(major_key, 9),
+    "C#:min", circshift(minor_key, 1),
+    "E:maj", circshift(major_key, 4),
+    "G#:min", circshift(minor_key, 8),
+    "B:maj", circshift(major_key, 11),
+    "D#:min", circshift(minor_key, 3)
+  )
+```
+
+### Giant Steps Keydograph ###
+```{r}
+gStep <- twenty_five <-
+  get_tidy_audio_analysis("18KSLe1ScEmgFt1XnyRSCV") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>%
+  unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  )
+
+gStep %>% compmus_match_pitch_template(
+    key_templates,         # Change to chord_templates if descired
+    method = "angular",  # Try different distance metrics
+    norm = "euclidean"     # Try different norms
+  ) %>%
+  ggplot(
+    aes(x = start + duration / 2, width = duration, y = name, fill = d)
+  ) +
+  geom_tile() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "") + 
+  ggtitle("Giant Steps by John Coltrane")
+```
+
+Column
+----------------------------------------------------------
+
+### Giant Steps ###
+
+
+Giant steps is notorious for its intricate key changes, changing key 10 times throughout the song and changing between B, Eb and G, all major thirds apart. 
+
+In the keydograph (?) you can see that it is hard to tell what key the song is in.
+
+The most apparent key in the keydograph is Cmaj which is a semitone above the key the song starts in. Why exactly this is I do not know. 
+
+It is possible that due to the melody, that often wanders away from the notes of the current key, different notes get emphasized causing the assumption of a different key. Combining this with the many key changes, this might be why the keys are all over the place.
+
+Conclusion: Sorry mr. Coltrane, I can't find your keys here. 
+
+
