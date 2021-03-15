@@ -26,6 +26,8 @@ My daily mixes usually range from playlists containing Pixies and the Velvet Und
 
 spotify user id of me: `r Sys.getenv("SPOTIFY_MY_ID")`.
 
+Below You can see a table of the top 20 tracks that occur most often in my corpus.
+
 ```{r include=FALSE}
 library(dbplyr)
 library(tidyverse)
@@ -84,6 +86,26 @@ tracks <- tracks %>%
     Weeknmbr = ifelse(type=="Daily Mix",map_chr(Day,get_week_n),substr(playlist_name,7,7))
   ) 
 ```
+
+
+```{r}
+
+extract_name <- function(artist) {
+  return(paste(artist$name,collapse = ", "))
+}
+
+tracks %>% 
+  count(track.name,track.artists,track.album.name) %>% 
+  arrange(desc(n)) %>% 
+  mutate(track.artists = track.artists %>% map_chr(extract_name)) %>% 
+  select(track.name,track.artists,n) %>% 
+  head(20)
+```
+
+<!-- Songs that are most are not my favourites. Maybe spotify biased because of popularity or something of music. Or I am biased because I don't like the music that I see the most the most. -->
+
+
+
 Analysis of the weekly playlists {.storyboard}
 ===========================================
 
@@ -1133,3 +1155,22 @@ It is possible that due to the melody, that often wanders away from the notes of
 Conclusion: Sorry mr. Coltrane, I can't find your keys here. 
 
 
+Tempo estimation{.storyboard}
+===============================================================================
+
+
+```{r}
+blaNight <- get_tidy_audio_analysis("4Am0Hjzk17bVolHRiKtaPy")
+
+# blaNight %>% 
+#   tempogram(window_size = 4, hop_size = 1, cyclic = FALSE) %>%
+#   ggplot(aes(x = time, y = bpm, fill = power)) +
+#   geom_raster() +
+#   scale_fill_viridis_c(guide = "none") +
+#   labs(x = "Time (s)", y = "Tempo (BPM)") +
+#   theme_classic()
+```
+
+##### Unfortunate Message ####
+
+Unfortunately my laptop kept crashing when trying to make tempograms. I am going to look into this because I would like to include them into my portfolio. 
