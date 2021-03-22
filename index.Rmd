@@ -3,7 +3,25 @@ title: "Computational Musicology Portfolio"
 output: 
   flexdashboard::flex_dashboard:
     theme: journal
+    
+#runtime: shiny
 ---
+
+<style>
+    .navbar {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: block;
+      position: fixed;
+      width: 200px; /* Modify the width of the sidebar */
+    }
+    body {
+      margin-left: 200px; /* Add a left margin to avoid content overlay */
+      padding-top:100px
+    }
+    </style>
+
 
 Overview
 =============================
@@ -38,14 +56,33 @@ library(plotly)
 library(Cairo)
 library(purrr)
 library(ggpubr)
+library(tidymodels)
+library(ggdendro)
+library(heatmaply)
+
+get_conf_mat <- function(fit) {
+  outcome <- .get_tune_outcome_names(fit)
+  fit %>% 
+    collect_predictions() %>% 
+    conf_mat(truth = outcome, estimate = .pred_class)
+}  
+
+get_pr <- function(fit) {
+  fit %>% 
+    conf_mat_resampled() %>% 
+    group_by(Prediction) %>% mutate(precision = Freq / sum(Freq)) %>% 
+    group_by(Truth) %>% mutate(recall = Freq / sum(Freq)) %>% 
+    ungroup() %>% filter(Prediction == Truth) %>% 
+    select(class = Prediction, precision, recall)
+}  
 ```
 
 
 
 
-```{r include=FALSE}
-playlists <- get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit=50)
-for (i in c(50,100,150)) {
+```{r eval=FALSE, include=FALSE}
+playlists <- tibble()
+for (i in c(0,50,100,150,200,250)) {
   playlists <- bind_rows(
     playlists, get_user_playlists("kmkov4v2xhms7od6p3gq32wfv",limit=50,offset = i)
   )
@@ -58,7 +95,7 @@ for (pl in unlist(playlists["id"])) {
 }
 ```
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 get_week_n <- function(day) {
   day[is.na(day)] <- "14/02"
   d = as.integer(substr(day,0,2))
@@ -73,7 +110,9 @@ get_week_n <- function(day) {
   }
   if(m==3) {
     nmbr = case_when(
-      d %in% 1:7 ~ 5
+      d %in% 1:7 ~ 5,
+      d %in% 8:14 ~ 6,
+      d %in% 15:21 ~ 7
     )
   }
   return(as.integer(nmbr))
@@ -165,7 +204,7 @@ int2key <- function(i) {
 }
   
 W %>%
-  mutate(key = int2key(key)) %>%
+  mutate(key = int2key(key)) %>% 
   ggplot(aes(key)) +geom_bar(fill="light green",alpha=0.8) + facet_wrap(~Weeknmbr)
 ```
 
@@ -180,7 +219,7 @@ Daily v Weekly
 Column{.tabset}
 -------------------------------------------------------
 
-```{r echo=FALSE}
+```{r eval=FALSE, include=FALSE}
 #print(unlist(playlists["id"]))
 
 ValEnMeans <- tracks %>% 
@@ -446,7 +485,7 @@ Chroma Features{.storyboard}
 
 #### Radiohead
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 song <-
   get_tidy_audio_analysis("6LgJvl0Xdtc73RJ1mmpotq") %>%
   select(segments) %>%
@@ -460,7 +499,7 @@ song2 <-
   select(start, duration, pitches)
   
 
-song %>%
+chromagram <- song %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -479,6 +518,11 @@ song %>%
 
 ```
 
+```{r}
+chromagram
+```
+
+
 ****
 
 Same song. Drastically differently performed. You can see that both versions have a similar structure regarding the chord changes but the changes are at different moments. Also Brad Mehldau really emphasizes one chord whereas the Radiohead version has the chroma magnitude more spread out at each time. A reason for this is probably that the Brad Mehldau version is mostly piano.
@@ -486,9 +530,9 @@ Also note that the original (Radiohead) version ends the song mostly in A with s
 
 #### Brad Mehldau
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
-song2 %>%
+chromagram2 <- song2 %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -507,10 +551,14 @@ song2 %>%
 
 ```
 
+```{r}
+chromagram2
+```
+
 
 
 ### Trying to find a dynamic warp path for these two versions is quite hard
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 dtw <- compmus_long_distance(
   song %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
@@ -534,6 +582,10 @@ dtw <- compmus_long_distance(
   theme_minimal() +
   scale_fill_viridis_c(guide = NULL)
 
+```
+
+
+```{r}
 dtw
 
 ```
@@ -544,7 +596,7 @@ Due to the completely different timings in the song and generally different appr
 
 ### "Hey Joe", both covers, one very popular, one less popular (but really should be)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 Jimi <- get_tidy_audio_analysis("0NWPxcsf5vdjdiFUI8NgkP") %>%
   select(segments) %>%
   unnest(segments) %>%
@@ -560,8 +612,8 @@ Roy <- get_tidy_audio_analysis("44uQ9n6xSO7vMA7z8Cciwo") %>%
 
 #### Roy Buchannan 
 
-```{r}
-Roy %>%
+```{r eval=FALSE, include=FALSE}
+chromagram3 <- Roy %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -579,6 +631,11 @@ Roy %>%
   scale_fill_viridis_c()
 ```
 
+```{r}
+chromagram3
+```
+
+
 **** 
 
 Both have a heavy concentration in E. But are very different for the rest. 
@@ -586,7 +643,7 @@ Both have a heavy concentration in E. But are very different for the rest.
 #### Jimi Hendrix
 
 ```{r}
-Jimi %>%
+chromagram4 <- Jimi %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -604,10 +661,15 @@ Jimi %>%
   scale_fill_viridis_c()
 ```
 
+```{r}
+chromagram4
+```
+
+
 ### DTW path is even less observable now
 
-```{r}
-compmus_long_distance(
+```{r eval=FALSE, include=FALSE}
+dtw2 <- compmus_long_distance(
   Roy %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
   Jimi %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
   feature = pitches,
@@ -630,6 +692,11 @@ compmus_long_distance(
   scale_fill_viridis_c(guide = NULL)
 ```
 
+```{r}
+dtw2
+```
+
+
 ***
 
 Even though when you listen to both songs you can immediately link them (probably due to the lyrics), they are nothing alike due to DTW.
@@ -641,7 +708,7 @@ Still, when I listen to these two covers I feel that they are more similar than 
 
 ### Twelve bar blues 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 Cantquit <- get_tidy_audio_analysis("62QInSlXQI11BR9ycVWjd6") %>%
   select(segments) %>%
   unnest(segments) %>%
@@ -660,8 +727,8 @@ Crossroads <- get_tidy_audio_analysis("6PUabSMXmPnZna361Wwmf7") %>%
 
 #### Crossroads by Cream
 
-```{r}
-Crossroads %>%
+```{r eval=FALSE, include=FALSE}
+chromagram5 <- Crossroads %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -679,12 +746,15 @@ Crossroads %>%
   scale_fill_viridis_c()
 ```
 
+```{r}
+chromagram5
+```
 
 
 #### I can't quit you baby by Led Zeppelin
 
-```{r}
-Cantquit %>%
+```{r eval=FALSE, include=FALSE}
+chromagram6 <- Cantquit %>%
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
   compmus_gather_chroma() %>% 
   ggplot(
@@ -702,11 +772,15 @@ Cantquit %>%
   scale_fill_viridis_c()
 ```
 
+```{r}
+chromagram6
+```
+
 
 ### DTW
 
-```{r}
-compmus_long_distance(
+```{r eval=FALSE, include=FALSE}
+dtw3 <- compmus_long_distance(
   Crossroads %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
   Cantquit %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
   feature = pitches,
@@ -728,6 +802,11 @@ compmus_long_distance(
   theme_minimal() +
   scale_fill_viridis_c(guide = NULL)
 ```
+
+```{r}
+dtw3
+```
+
 
 *** 
 
@@ -758,7 +837,7 @@ In the opposing upper right corner we have, with a valence of 0.877, energy rati
 I analysed differences in chromagrams, cepstograms and self similarity matrices. 
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 msAlis <-
   get_tidy_audio_analysis("1YIxmHt4EKS0gMs3L0mxQV") %>% # Change URI.
   compmus_align(bars, segments) %>%                     # Change `bars`
@@ -801,7 +880,7 @@ Heather <-
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
  AT <- msAlis%>%
   compmus_gather_timbre() %>%
   ggplot(
@@ -865,7 +944,7 @@ HP <- Heather %>%
   scale_fill_viridis_c()
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 ASSt <- msAlis %>%
   compmus_self_similarity(timbre, "cosine") %>% 
   ggplot(
@@ -936,7 +1015,7 @@ HSSp <- Heather %>%
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 Pplot <- ggarrange(AP, HP, 
           labels = c("Miss Alissa", "Heather"),
           ncol = 1, nrow = 2) %>% 
@@ -1022,7 +1101,7 @@ Key Estimation
 Column
 ----------------------------------------------------------
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 circshift <- function(v, n) {
   if (n == 0) v else c(tail(v, n), head(v, -n))
 }
@@ -1159,7 +1238,7 @@ Tempo estimation{.storyboard}
 ===============================================================================
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 blaNight <- get_tidy_audio_analysis("4Am0Hjzk17bVolHRiKtaPy")
 
 # blaNight %>% 
@@ -1174,3 +1253,282 @@ blaNight <- get_tidy_audio_analysis("4Am0Hjzk17bVolHRiKtaPy")
 ##### Unfortunate Message ####
 
 Unfortunately my laptop kept crashing when trying to make tempograms. I am going to look into this because I would like to include them into my portfolio. 
+
+
+Clustering comparisson to daily mixes {.storyboard}
+===============================================
+### Clustering ###
+
+```{r eval=FALSE, include=FALSE}
+clusterplotVE <- ggarrange(ggplotly(VE0702pl) , ggplotly(VE0702cl) , 
+          labels = c("Daily_mixes", "K-means Clusters"),
+          ncol = 2, nrow = 1)%>% 
+  annotate_figure(
+    top = text_grob("Daily mixes and Kmeans clusters")
+  )
+
+clusterplotVE <- subplot(ggplotly(VE0702pl), ggplotly(VE0702cl), nrows = 2, margin = 0.04, heights = c(0.5, 0.5))
+```
+
+```{r}
+clusterplotVE
+```
+
+***
+
+I thought it might be fun to see if I could cluster a day of songs into 6 clusters which resemble daily mixes. For this reason hierarchical clustering did not seem like the best option for it will be hard to pick 6 clusters with hierarchical clustering because it always branches out in 2. Meaning that I'd have to pick a depth with either 4 clusters or 8 clusters. 
+
+Therefore I have used k-means with k=6 to find 6 clusters. 
+
+I used energy, key, loudness, mode, speechiness, acousticness, instrumentalness, liveness, valence, tempo, time_signature, track.duration_ms and the MFCC's as features for clustering.
+
+Here you can see a graph of the energy and valence of the daily mixes (top) and the clusters (bottom). It is fairly apparent that valence and energy do not have a lot of say in distinguishing both daily mixes and k-means clusters. 
+
+Let's find the important features.
+
+***
+
+
+### Training a classifier to determine cluster important features ###
+
+#### Classifier Precision and Recall ####
+
+*** 
+
+So I did not know if there was a more efficient way to do this but this seemed suitable. Training a random forest classifier to classify the clusters aquired by k-means clustering will show which features are most important when determining what should be in which cluster. 
+
+The precisions seem pretty okay and the importance shows that "mode","instrumentalness" and "energy" are very important when assigning songs to clusters. 
+
+Let's take a look. 
+
+***
+
+
+```{r}
+tracks0702_forest %>% get_pr()
+
+```
+
+#### Important features ####
+
+```{r}
+workflow() %>% 
+  add_recipe(tracks_rec) %>% 
+  add_model(forest_model) %>% 
+  fit(tracks0702cl) %>% 
+  pluck("fit", "fit", "fit") %>%
+  ranger::importance() %>% 
+  enframe() %>% 
+  mutate(name = fct_reorder(name, value)) %>% 
+  ggplot(aes(name, value)) + 
+  geom_col() + 
+  coord_flip() +
+  theme_minimal() +
+  labs(x = NULL, y = "Importance")
+```
+
+
+### Important features for clusters ###
+
+
+```{r eval=FALSE, include=FALSE}
+
+p1 <- tracks0702 %>% 
+  ggplot(aes(energy,instrumentalness,color=playlist_name)) + geom_point() 
+
+p2 <- tracks0702cl %>% 
+  ggplot(aes(energy,instrumentalness,color=cluster)) + geom_point() 
+
+p3 <- tracks0702cl %>% 
+  ggplot(aes(mode,fill=playlist_name)) + geom_bar() 
+
+p4 <- tracks0702cl %>% 
+  ggplot(aes(mode,fill=cluster)) + geom_bar()
+```
+
+#### Energy and instrumentalness ####
+
+```{r}
+subplot(p1 %>% ggplotly(), p2 %>% ggplotly(), nrows = 1, margin = 0.04, widths = c(0.5, 0.5))
+
+```
+
+#### Mode ####
+
+
+```{r}
+ggarrange(p3, p4, 
+          labels = c("Daily mixes", "K-means clusters"),
+          ncol = 2, nrow = 1)
+
+```
+
+*** 
+
+Interesting to see that mode almost completely seperates two groups of three clusters while the actual playlists are distributed equally among the modes. This discriminative power of "mode" is probably due to its binary nature. Possibly I should combine key and mode to get a feature that consists of all 24 possibilities of key_modes. 
+
+I should also train a classifier to daily mixes to actually find out where the daily mixes make their decisions but it is 30 minutes before the deadline currently. 
+
+***
+
+
+Estimating listen History from discover weeklies 
+================================================
+Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
+
+Discover weekly as a sum of x daily mixes
+
+.... 
+
+Discover weekly as a sum of 6 clusters for each day
+
+(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
+
+....
+
+```{r eval=FALSE, include=FALSE}
+get_my_recently_played(limit=50,after= 	1611064958) %>% 
+    mutate(artist.name = map_chr(track.artists, function(x) x$name[1])) %>% 
+    select(track.name, artist.name, track.album.name, played_at)
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+tracks0702 <- tracks %>% 
+  filter(Day == "07/02") %>% 
+  add_audio_analysis() %>%
+  mutate(
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean"
+      )
+  ) %>%
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) %>%
+  mutate_at(vars(pitches, timbre), map, bind_rows) %>%
+  unnest(cols = c(pitches, timbre))
+```
+
+```{r eval=FALSE, include=FALSE}
+tracks_cluster <- recipe(
+    track.id ~
+      energy +
+      key +
+      loudness +
+      mode +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      time_signature +
+      track.duration_ms+
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+      #track.album.release_date,
+    data = tracks0702 %>% mutate(track.album.release_date = as.numeric(substr(track.album.release_date,1,4)) )
+  ) %>%
+  step_center(all_predictors()) %>%
+  #step_scale(all_predictors()) %>% 
+  step_range(all_predictors()) %>% 
+  prep(tracks0702 ) %>%
+  juice() %>% 
+  column_to_rownames("track.id")
+
+#%>% mutate(track.name = str_trunc(track.name, 20))
+```
+
+
+```{r eval=FALSE, include=FALSE}
+dist(tracks_cluster, method = "manhattan") %>% 
+  hclust(method = "average") %>% # Try single, average, and complete.
+  dendro_data() %>%
+  ggdendrogram()
+```
+
+```{r eval=FALSE, include=FALSE}
+cluster0702 <- kmeans(tracks_cluster,6)
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+get_clust <- function(id) {
+  return(cluster0702$cluster[id])
+}
+
+tracks0702cl <- tracks0702 %>% mutate(cluster = map_chr(track.id,get_clust))
+
+VE0702pl <- tracks0702 %>% 
+  ggplot(aes(valence,energy,color=playlist_name)) + geom_point()
+
+VE0702cl <- tracks0702cl %>% 
+  ggplot(aes(valence,energy,color=cluster)) + geom_point()
+  
+  
+```
+This is an example. It also shows that energy and valence are not the most important features 
+
+```{r eval=FALSE, include=FALSE}
+tracks_rec <-
+  recipe(
+    cluster ~
+      energy +
+      key +
+      loudness +
+      mode +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      time_signature +
+      track.duration_ms+
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = tracks0702cl,          # Use the same name as the previous block.
+  ) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())
+```
+
+
+```{r eval=FALSE, include=FALSE}
+tracks0702_cv <- tracks0702cl %>% vfold_cv(10)
+```
+
+```{r eval=FALSE, include=FALSE}
+forest_model <-
+  rand_forest() %>%
+  set_mode("classification") %>% 
+  set_engine("ranger", importance = "impurity")
+tracks0702_forest <- 
+  workflow() %>% 
+  add_recipe(tracks_rec) %>% 
+  add_model(forest_model) %>% 
+  fit_resamples(
+    tracks0702_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+
+
+
+
+
+
+
+
