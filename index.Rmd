@@ -44,7 +44,7 @@ My daily mixes usually range from playlists containing Pixies and the Velvet Und
 
 spotify user id of me: `r Sys.getenv("SPOTIFY_MY_ID")`.
 
-Below You can see a table of the top 20 tracks that occur most often in my corpus.
+Below You can see a table of all the tracks that occur in my corpus. ordered in descending frequency of occurence. 
 
 ```{r include=FALSE}
 library(dbplyr)
@@ -1514,19 +1514,10 @@ tracks0702_forest <-
 
 
 
-Estimating listen History from discover weeklies 
+Estimating listen History from discover weeklies{.storyboard}
 ================================================
-Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
 
-Discover weekly as a sum of x daily mixes
 
-.... 
-
-Discover weekly as a sum of 6 clusters for each day
-
-(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
-
-....
 
 
 
@@ -1611,10 +1602,55 @@ W7 <- W7All %>%
 ```
 
 
+### Basic Idea
+
+So now that we have an idea about what features we can extract and analyze using the spotify API, let's return to the research questions: 
+
+(1) Is there a way to predict my discover weekly playlist of the next week based on my daily mixes of the current week.
+
+(2) Is there a way to predict which daily mixes I listened to in the previous week(s) based on my discover weekly playlist. 
+
+Starting off, estimating my next discover weekly based on my daily mixes is going to be difficult. This will require me to compare the daily mixes to every song on spotify to find a fitting match for a discover weekly playlist. This is something spotify does very well and I doubt I will be able to recreate this wonderful algorithm for this project. 
+
+However, determining what daily mixes I listened to the most should be doable. Suppose we look at a discover weekly playlist and the daily mixes of the previous week. We can then write this down as an equation where each daily mix has a weight to determine how much I listened to it: 
+
+$DW =  DM_A^1 * W_1 + DM_B^1 * W_2 +...+ DM_F^7*W_{42}$
+
+Where each playlist is actually a set of features. Now an optimal solution where $ DW $ is estimated exactly likely does not exist. But this can be interpreted as a linear regression problem which we can solve. 
+
+### Feature space and some linear algebra
+
 ```{r}
-W7All
-W7
+W7All %>% 
+  kbl() %>% 
+  kable_styling(fixed_thead = T)
+  
+W7 %>% 
+  kbl() %>%
+  #kable_material(c("striped", "hover")) %>% 
+  kable_styling(fixed_thead = T)
 ```
+
+***
+
+### Least squares fitting
+
+### Results
+
+Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
+
+Discover weekly as a sum of x daily mixes
+
+.... 
+
+Discover weekly as a sum of 6 clusters for each day
+
+(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
+
+....
+
+
+
 
 
 ```{r}
@@ -1636,4 +1672,35 @@ w
 ```{r}
 nnls(t(W7A),W7b)$x
 ```
+```{r}
+W7DALL <- track_feats %>% 
+  filter(Weeknmbr <= 6,type=="Daily Mix") %>% 
+  bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
+  select(feats) %>% 
+  rename(
+    "Db" = "C#|Db",
+    "Eb" = "D#|Eb",
+    "Gb" = "F#|Gb",
+    "Ab" = "G#|Ab",
+    "Bb" = "A#|Bb"
+  ) %>% 
+  mutate(
+    energy = scale(energy),
+    loudness = scale(loudness),
+    speechiness = scale(speechiness),
+    acousticness = scale(acousticness), 
+    instrumentalness = scale(instrumentalness),
+    liveness = scale(liveness),
+    valence = scale(valence),
+    tempo = scale(tempo),
+    track.duration_ms = scale(track.duration_ms),
+    c01 = scale(c01), c02 = scale(c02), c03 = scale(c03), c04 = scale(c04), c05 = scale(c05),
+    c06 = scale(c06), c07 = scale(c07), c08 = scale(c08), c09 = scale(c09), c10 = scale(c10),
+    c11 = scale(c11), c12 = scale(c12),
+    C = scale(C), Db = scale(Db), D = scale(D), Eb = scale(Eb), E = scale(E), F = scale(F), Gb = scale(Gb), G = scale(G), 
+    Ab = scale(Ab), A = scale(A), Bb = scale(Bb), B = scale(B)
+  ) 
+```
+
+### Conclusion and potential future work
 
