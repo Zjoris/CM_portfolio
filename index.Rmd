@@ -1569,7 +1569,7 @@ feats = c(
 W7All <- track_feats %>% 
   filter(Weeknmbr == 6,type=="Daily Mix") %>% 
   bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
-  select(feats) %>% 
+  select(all_of(feats)) %>% 
   rename(
     "Db" = "C#|Db",
     "Eb" = "D#|Eb",
@@ -1618,12 +1618,30 @@ $DW =  DM_A^1 * W_1 + DM_B^1 * W_2 +...+ DM_F^7*W_{42}$
 
 Where each playlist is actually a set of features. Now an optimal solution where $ DW $ is estimated exactly likely does not exist. But this can be interpreted as a linear regression problem which we can solve. 
 
-### Feature space and some linear algebra
+### Feature space
+
+#### feautures on track level
+
+***
+
+Below you can see a table consisting of one week of daily mixes and a discover weekly playlist. Every feature has been z-normalized to ensure that all features are treated as equally important. In this manner every song can be interpreted as a set of features and their values.
+
 
 ```{r}
 W7All %>% 
   kbl() %>% 
   kable_styling(fixed_thead = T)
+
+```
+
+#### features on playlist level
+
+***
+
+However, we are interested in the way playlist listen history and not track listen history. For simplicity we can take the mean of each feature for every playlist, resulting in the following feature space:
+
+
+```{r}
   
 W7 %>% 
   kbl() %>%
@@ -1631,27 +1649,32 @@ W7 %>%
   kable_styling(fixed_thead = T)
 ```
 
-***
+
 
 ### Least squares fitting
 
-### Results
+#### Regular Least squares
 
-Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
+***
 
-Discover weekly as a sum of x daily mixes
+We are interested in the equation: 
 
-.... 
+$DW =  DM_A^1 * W_1 + DM_B^1 * W_2 +...+ DM_F^7*W_{42}$
 
-Discover weekly as a sum of 6 clusters for each day
+which, from the table, reduces to:
 
-(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
+$\begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ ... \\ B_{DW} \end{bmatrix} =\begin{bmatrix} energy_{DM_A^1} \\ loudness_{DM_A^1} \\ ... \\ B_{DM_A^1} \end{bmatrix} *W_1 + .... +  \begin{bmatrix} energy_{DM_F^7} \\ loudness_{DM_F^7} \\ ... \\ B_{DM_F^7} \end{bmatrix} * W_{42} $
 
-....
+Now without getting to deep into linear algebra, because there most likely is no optimal solution we need to perform a least squares estimation. For this we need to reformulate this equation as a matrix equation which looks like: 
 
+$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix}= \begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ \vdots \\ B_{DW} \end{bmatrix}$
 
+Where each $DM$ is a vector of all the features. 
+To perform a least squares estimate we need to multiply each side by the Transpose of our Daily Mix feature matrix and then solve for the vector of weights: 
 
+$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \times \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix} = \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times DW$
 
+This results in the following weights:
 
 ```{r}
 W7A <- W7[-nrow(W7),] %>% 
@@ -1667,11 +1690,71 @@ ATA <- W7A %*% t(W7A)
 ATb <- W7A %*% W7b
 
 w <- solve(ATA,ATb,tol = 1e-19)
-w
+
+W7[-nrow(W7),] %>% 
+  select(playlist_name) %>% 
+  mutate(weight = w) %>% 
+  kbl() %>%
+  kable_material(c("striped", "hover")) %>% 
+  kable_styling(fixed_thead = T)
 ```
+
+#### Non negative least squares
+
+***
+
+However, coming back to reality from our sidestep into linear algebra. Negative values really do not make sense in this situation. A negative value would suggest that I intentionally ignored several playlists, which could be the case but I doubt spotify can measure this. 
+
+Luckily I found a package online called "nnls" (non negative least squares) which calculates the least squares estimate using only positive values. 
+
+This resulted in the following weights: 
+
 ```{r}
-nnls(t(W7A),W7b)$x
+nonneg <- nnls(t(W7A),W7b)
+
+W7[-nrow(W7),] %>% 
+  select(playlist_name) %>% 
+  mutate(weight = nonneg$x) %>% 
+  kbl() %>%
+  kable_material(c("striped", "hover")) %>% 
+  kable_styling(fixed_thead = T)
 ```
+
+
+
+### What does it mean and how well did it do
+
+Unfortunately spotify's recently played function does not let you see past the last 50 recently played songs. This is unfortunate because this makes it harder to determine whether the predictions are correct. But just looking at the weights may allready say something. 
+
+```{r}
+W7b %>% 
+  as_tibble() %>% 
+  mutate(features = names(W7 %>% select(-Day,-playlist_name)),
+         "Least Square fit" = t(W7A) %*% w,
+         "LS resids" = V1 - t(W7A) %*% w,
+         "Non negative fit" = nonneg$fitted,
+         "NNLS resids" = nonneg$residuals) %>% 
+  rename(DW = V1)
+        
+```
+
+```{r}
+nonneg$deviance
+
+sum((t(W7A) %*% w-W7b)**2)
+```
+
+
+
+Which begs to say: sometimes the optimal parameters do not make sense in reality and it is important to keep mathematics relevant to what you are trying to discover. 
+
+
+
+
+
+
+
+
 ```{r}
 W7DALL <- track_feats %>% 
   filter(Weeknmbr <= 6,type=="Daily Mix") %>% 
