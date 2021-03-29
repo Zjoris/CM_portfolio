@@ -1,5 +1,6 @@
 ---
 title: "Computational Musicology Portfolio"
+author: "Joris Galema"
 output: 
   flexdashboard::flex_dashboard:
     theme: journal
@@ -18,7 +19,7 @@ output:
     }
     body {
       margin-left: 200px; /* Add a left margin to avoid content overlay */
-      padding-top:100px
+      padding-top:0px
     }
     </style>
 
@@ -33,7 +34,7 @@ That being said, I do need some type of playlist to get my day started. Therefor
 
 This made me wonder how these playlists vary from day to day and week to week and how my discover weekly relates to my daily mixes.
 
-Therefore I will be analyzing my daily mixes and discover weekly playlists for the duration of 8 weeks. The interest lies mostly on the relation between the daily mixes and the discover weekly playlist.
+Therefore I will be analyzing my daily mixes and discover weekly playlists for the duration of 7 weeks. The interest lies mostly on the relation between the daily mixes and the discover weekly playlist.
 There is two things I hope to discover:
 
 (1) Is there a way to predict my discover weekly playlist of the next week based on my daily mixes of the current week.
@@ -237,7 +238,7 @@ W %>%
 Daily v Weekly
 ================================================================
 
-Column{.tabset}
+Column{.tabset .data-width = 600}
 -------------------------------------------------------
 
 ```{r eval=FALSE, include=FALSE}
@@ -431,6 +432,154 @@ ValEner4 <- ggplotly(ValEner4) %>% layout(
           
           )))
     )
+
+ValEnMeans5 <- tracks %>% 
+  filter(Weeknmbr==5) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+
+ValEner5 <- tracks %>%
+  filter(Weeknmbr==5) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans5,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly5")
+
+
+ValEner5 <- ggplotly(ValEner5)
+ValEner5 <- ValEner5 %>% layout(
+  title = "Week 1 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+        buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,F,TRUE,FALSE,FALSE,F,TRUE,FALSE,FALSE,F,TRUE,FALSE,FALSE,F,TRUE,FALSE,FALSE,F,TRUE,FALSE,FALSE,F,TRUE)),
+               label = "01/03"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,F,FALSE,TRUE,FALSE,F,FALSE,TRUE,FALSE,F,FALSE,TRUE,FALSE,F,FALSE,TRUE,FALSE,F,FALSE,TRUE,FALSE,F,TRUE)),
+               label = "02/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,F, FALSE, FALSE, TRUE,F, FALSE, FALSE, TRUE,F, FALSE, FALSE, TRUE,F, FALSE, FALSE,TRUE,F, FALSE, FALSE,TRUE,F, TRUE)),
+               label = "05/03"),
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, F,TRUE, FALSE, FALSE,F,T, FALSE, FALSE,F, TRUE, FALSE, FALSE, F,TRUE, FALSE, FALSE,F,TRUE, FALSE, FALSE,F,T, TRUE)),
+               label = "07/03")
+          
+          )))
+    )
+
+ValEnMeans6 <- tracks %>% 
+  filter(Weeknmbr==6) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner6 <- tracks %>%
+  filter(Weeknmbr==6) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans6,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly6")
+
+ValEner6 <- ggplotly(ValEner6) %>% layout(
+  title = "Week 6 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+       buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,F,TRUE)),
+               label = "08/03"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,F,FALSE,FALSE,FALSE,FALSE, TRUE)),
+               label = "09/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE, FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE,FALSE,FALSE, TRUE)),
+               label = "10/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE, FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,F,FALSE, FALSE, TRUE)),
+               label = "11/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE, FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE,F, FALSE, TRUE)),
+               label = "12/03"),
+          
+           list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,F, TRUE)),
+               label = "13/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE,FALSE, FALSE,F, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE,F, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE,F, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE,F, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, F,TRUE,FALSE, FALSE,FALSE,FALSE, FALSE,F, TRUE, TRUE)),
+               label = "14/03")
+          
+          
+          )))
+    )
+
+ValEnMeans7 <- tracks %>% 
+  filter(Weeknmbr==7) %>% 
+  group_by(playlist_name) %>% 
+  summarise(
+    valence = mean(valence),
+    energy = mean(energy),
+    track.name = "Mean Valence,Energy"
+  )
+
+ValEner7 <- tracks %>%
+  filter(Weeknmbr==7) %>% 
+  #group_by(Day) %>% 
+  ggplot(aes(x = valence, y = energy,color = playlist_name,text=track.name)) + geom_point(alpha=0.3) + geom_point(data=ValEnMeans7,size=3,alpha=15,shape=3)
+
+W1 <- tracks %>% filter(playlist_name=="Weekly7")
+
+
+ValEner7 <- ggplotly(ValEner7) %>% layout(
+  title = "Week 7 Discover Weekly vs Dailies",
+  updatemenus = list(
+    list(
+      y = 0.9,
+       buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE)),
+               label = "15/03"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE, TRUE)),
+               label = "16/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE,FALSE, FALSE, TRUE,FALSE,FALSE,FALSE, TRUE)),
+               label = "17/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE,FALSE, FALSE,FALSE, TRUE,FALSE, FALSE, TRUE)),
+               label = "18/03"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE,FALSE, FALSE,FALSE, FALSE, TRUE, FALSE, TRUE)),
+               label = "19/03"),
+          
+           list(method = "restyle",
+               args = list("visible", list(FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE,FALSE, FALSE,FALSE,FALSE, FALSE, TRUE, TRUE)),
+               label = "21/03")
+          
+          
+          )))
+    )
 ```
 
 ### Valence and Energy 1 ###
@@ -485,14 +634,28 @@ ValEner3
 ValEner4
 ```
 
+### Valence and Energy 5
 
-
-```{r eval=FALSE, include=FALSE}
-tracks %>%
-  mutate(key = int2key(key)) %>%
-  ggplot(aes(key, fill = playlist_name)) +geom_bar(alpha=0.8) + facet_wrap(~Weeknmbr)
+```{r}
+ValEner5
 ```
-Column
+
+
+### Valence and Energy 6
+
+```{r}
+ValEner6
+```
+
+
+### Valence and Energy 7
+
+```{r}
+ValEner7
+```
+
+
+Column {data-width = 200}
 ----------------------------------------------------------
 ### Some Explanation
 Weeks 1-3 energy valence mean of DW playlists in the middle of means for daily mixes.
@@ -1260,6 +1423,84 @@ Conclusion: Sorry mr. Coltrane, I can't find your keys here.
 
 Clustering comparisson to daily mixes {.storyboard}
 ===============================================
+
+```{r eval=FALSE, include=FALSE}
+tracks0702 <- tracks %>% 
+  filter(Day == "07/02") %>% 
+  add_audio_analysis() %>%
+  mutate(
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean"
+      )
+  ) %>%
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) %>%
+  mutate_at(vars(pitches, timbre), map, bind_rows) %>%
+  unnest(cols = c(pitches, timbre))
+```
+
+```{r eval=FALSE, include=FALSE}
+tracks_cluster <- recipe(
+    track.id ~
+      energy +
+      key +
+      loudness +
+      mode +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      time_signature +
+      track.duration_ms+
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+      #track.album.release_date,
+    data = tracks0702 %>% mutate(track.album.release_date = as.numeric(substr(track.album.release_date,1,4)) )
+  ) %>%
+  step_center(all_predictors()) %>%
+  #step_scale(all_predictors()) %>% 
+  step_range(all_predictors()) %>% 
+  prep(tracks0702 ) %>%
+  juice() %>% 
+  column_to_rownames("track.id")
+
+#%>% mutate(track.name = str_trunc(track.name, 20))
+```
+
+```{r eval=FALSE, include=FALSE}
+cluster0702 <- kmeans(tracks_cluster,6)
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+get_clust <- function(id) {
+  return(cluster0702$cluster[id])
+}
+
+tracks0702cl <- tracks0702 %>% mutate(cluster = map_chr(track.id,get_clust))
+
+VE0702pl <- tracks0702 %>% 
+  ggplot(aes(valence,energy,color=playlist_name)) + geom_point()
+
+VE0702cl <- tracks0702cl %>% 
+  ggplot(aes(valence,energy,color=cluster)) + geom_point()
+  
+  
+```
+
 ### Clustering ###
 
 ```{r eval=FALSE, include=FALSE}
@@ -1293,6 +1534,50 @@ Let's find the important features.
 
 
 ### Training a classifier to determine cluster important features ###
+
+```{r eval=FALSE, include=FALSE}
+tracks_rec <-
+  recipe(
+    cluster ~
+      energy +
+      key +
+      loudness +
+      mode +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      time_signature +
+      track.duration_ms+
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = tracks0702cl,          # Use the same name as the previous block.
+  ) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())
+```
+
+
+```{r eval=FALSE, include=FALSE}
+tracks0702_cv <- tracks0702cl %>% vfold_cv(10)
+```
+
+```{r eval=FALSE, include=FALSE}
+forest_model <-
+  rand_forest() %>%
+  set_mode("classification") %>% 
+  set_engine("ranger", importance = "impurity")
+tracks0702_forest <- 
+  workflow() %>% 
+  add_recipe(tracks_rec) %>% 
+  add_model(forest_model) %>% 
+  fit_resamples(
+    tracks0702_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+```
 
 #### Classifier Precision and Recall ####
 
@@ -1375,142 +1660,18 @@ I should also train a classifier to daily mixes to actually find out where the d
 ***
 
 
-```{r eval=FALSE, include=FALSE}
-get_my_recently_played(limit=50,after= 	1611064958) %>% 
-    mutate(artist.name = map_chr(track.artists, function(x) x$name[1])) %>% 
-    select(track.name, artist.name, track.album.name, played_at)
-
-```
-
-
-```{r eval=FALSE, include=FALSE}
-tracks0702 <- tracks %>% 
-  filter(Day == "07/02") %>% 
-  add_audio_analysis() %>%
-  mutate(
-    segments = map2(segments, key, compmus_c_transpose),
-    pitches =
-      map(segments,
-        compmus_summarise, pitches,
-        method = "mean", norm = "manhattan"
-      ),
-    timbre =
-      map(
-        segments,
-        compmus_summarise, timbre,
-        method = "mean"
-      )
-  ) %>%
-  mutate(pitches = map(pitches, compmus_normalise, "clr")) %>%
-  mutate_at(vars(pitches, timbre), map, bind_rows) %>%
-  unnest(cols = c(pitches, timbre))
-```
-
-```{r eval=FALSE, include=FALSE}
-tracks_cluster <- recipe(
-    track.id ~
-      energy +
-      key +
-      loudness +
-      mode +
-      speechiness +
-      acousticness +
-      instrumentalness +
-      liveness +
-      valence +
-      tempo +
-      time_signature +
-      track.duration_ms+
-      c01 + c02 + c03 + c04 + c05 + c06 +
-      c07 + c08 + c09 + c10 + c11 + c12,
-      #track.album.release_date,
-    data = tracks0702 %>% mutate(track.album.release_date = as.numeric(substr(track.album.release_date,1,4)) )
-  ) %>%
-  step_center(all_predictors()) %>%
-  #step_scale(all_predictors()) %>% 
-  step_range(all_predictors()) %>% 
-  prep(tracks0702 ) %>%
-  juice() %>% 
-  column_to_rownames("track.id")
-
-#%>% mutate(track.name = str_trunc(track.name, 20))
-```
-
-
-```{r eval=FALSE, include=FALSE}
-dist(tracks_cluster, method = "manhattan") %>% 
-  hclust(method = "average") %>% # Try single, average, and complete.
-  dendro_data() %>%
-  ggdendrogram()
-```
-
-```{r eval=FALSE, include=FALSE}
-cluster0702 <- kmeans(tracks_cluster,6)
-
-```
 
 
 
-```{r eval=FALSE, include=FALSE}
-
-get_clust <- function(id) {
-  return(cluster0702$cluster[id])
-}
-
-tracks0702cl <- tracks0702 %>% mutate(cluster = map_chr(track.id,get_clust))
-
-VE0702pl <- tracks0702 %>% 
-  ggplot(aes(valence,energy,color=playlist_name)) + geom_point()
-
-VE0702cl <- tracks0702cl %>% 
-  ggplot(aes(valence,energy,color=cluster)) + geom_point()
-  
-  
-```
-
-```{r eval=FALSE, include=FALSE}
-tracks_rec <-
-  recipe(
-    cluster ~
-      energy +
-      key +
-      loudness +
-      mode +
-      speechiness +
-      acousticness +
-      instrumentalness +
-      liveness +
-      valence +
-      tempo +
-      time_signature +
-      track.duration_ms+
-      c01 + c02 + c03 + c04 + c05 + c06 +
-      c07 + c08 + c09 + c10 + c11 + c12,
-    data = tracks0702cl,          # Use the same name as the previous block.
-  ) %>%
-  step_center(all_predictors()) %>%
-  step_scale(all_predictors())
-```
 
 
-```{r eval=FALSE, include=FALSE}
-tracks0702_cv <- tracks0702cl %>% vfold_cv(10)
-```
 
-```{r eval=FALSE, include=FALSE}
-forest_model <-
-  rand_forest() %>%
-  set_mode("classification") %>% 
-  set_engine("ranger", importance = "impurity")
-tracks0702_forest <- 
-  workflow() %>% 
-  add_recipe(tracks_rec) %>% 
-  add_model(forest_model) %>% 
-  fit_resamples(
-    tracks0702_cv, 
-    control = control_resamples(save_pred = TRUE)
-  )
-```
+
+
+
+
+
+
 
 
 
@@ -1724,7 +1885,7 @@ W7[-nrow(W7),] %>%
 
 ### What does it mean and how well did it do
 
-Unfortunately spotify's recently played function does not let you see past the last 50 recently played songs. This is unfortunate because this makes it harder to determine whether the predictions are correct. But just looking at the weights may allready say something. 
+
 
 ```{r}
 W7b %>% 
@@ -1737,6 +1898,12 @@ W7b %>%
   rename(DW = V1)
         
 ```
+
+***
+
+Unfortunately spotify's recently played function does not let you see past the last 50 recently played songs. This is unfortunate because this makes it harder to determine whether the predictions are correct. But just looking at the weights may allready say something. 
+
+
 
 ```{r}
 nonneg$deviance
@@ -1754,36 +1921,4 @@ Which begs to say: sometimes the optimal parameters do not make sense in reality
 
 
 
-
-```{r}
-W7DALL <- track_feats %>% 
-  filter(Weeknmbr <= 6,type=="Daily Mix") %>% 
-  bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
-  select(feats) %>% 
-  rename(
-    "Db" = "C#|Db",
-    "Eb" = "D#|Eb",
-    "Gb" = "F#|Gb",
-    "Ab" = "G#|Ab",
-    "Bb" = "A#|Bb"
-  ) %>% 
-  mutate(
-    energy = scale(energy),
-    loudness = scale(loudness),
-    speechiness = scale(speechiness),
-    acousticness = scale(acousticness), 
-    instrumentalness = scale(instrumentalness),
-    liveness = scale(liveness),
-    valence = scale(valence),
-    tempo = scale(tempo),
-    track.duration_ms = scale(track.duration_ms),
-    c01 = scale(c01), c02 = scale(c02), c03 = scale(c03), c04 = scale(c04), c05 = scale(c05),
-    c06 = scale(c06), c07 = scale(c07), c08 = scale(c08), c09 = scale(c09), c10 = scale(c10),
-    c11 = scale(c11), c12 = scale(c12),
-    C = scale(C), Db = scale(Db), D = scale(D), Eb = scale(Eb), E = scale(E), F = scale(F), Gb = scale(Gb), G = scale(G), 
-    Ab = scale(Ab), A = scale(A), Bb = scale(Bb), B = scale(B)
-  ) 
-```
-
-### Conclusion and potential future work
 
