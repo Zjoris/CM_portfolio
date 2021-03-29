@@ -59,6 +59,10 @@ library(ggpubr)
 library(tidymodels)
 library(ggdendro)
 library(heatmaply)
+library(knitr)
+library(nnls)
+library(kableExtra)
+library(DT)
 
 get_conf_mat <- function(fit) {
   outcome <- .get_tune_outcome_names(fit)
@@ -138,7 +142,7 @@ tracks %>%
   arrange(desc(n)) %>% 
   mutate(track.artists = track.artists %>% map_chr(extract_name)) %>% 
   select(track.name,track.artists,n) %>% 
-  head(20)
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(10,25,50,-1),c(10,25,50,"All"))))
 ```
 
 <!-- Songs that are most are not my favourites. Maybe spotify biased because of popularity or something of music. Or I am biased because I don't like the music that I see the most the most. -->
@@ -205,12 +209,29 @@ int2key <- function(i) {
   
 W %>%
   mutate(key = int2key(key)) %>% 
-  ggplot(aes(key)) +geom_bar(fill="light green",alpha=0.8) + facet_wrap(~Weeknmbr)
+  ggplot(aes(key_mode)) +geom_bar(fill="light green",color="white",alpha=0.8) + facet_wrap(~Weeknmbr) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 ***
 
 Weekly 1 seems to be mostly in "A". This makes sense because the songs in that playlist have a lot more simplicity to them. And A is a pretty "go to" key in my opinion.
+
+
+### Tempo
+
+```{r}
+W %>% 
+  ggplot(aes(tempo)) +geom_histogram(fill="red",color="white",alpha=0.8,bins=15) + facet_wrap(~Weeknmbr)
+```
+
+### Loudness
+
+```{r}
+W %>% 
+  ggplot(aes(loudness)) +geom_histogram(fill="blue",color="white",alpha=0.8,bins=15) + facet_wrap(~Weeknmbr)
+```
+
+
 
 
 Daily v Weekly
@@ -1018,14 +1039,14 @@ HSSp <- Heather %>%
 ```{r eval=FALSE, include=FALSE}
 Pplot <- ggarrange(AP, HP, 
           labels = c("Miss Alissa", "Heather"),
-          ncol = 1, nrow = 2) %>% 
+          ncol = 1, nrow = 2,vjust = -0.5) %>% 
   annotate_figure(
     top = text_grob("Chromagrams")
   )
 
 Tplot <- ggarrange(AT, HT, 
           labels = c("Miss Alissa", "Heather"),
-          ncol = 1, nrow = 2)%>% 
+          ncol = 1, nrow = 2,vjust=-0.5)%>% 
   annotate_figure(
     top = text_grob("Cepstograms")
   )
@@ -1234,25 +1255,7 @@ It is possible that due to the melody, that often wanders away from the notes of
 Conclusion: Sorry mr. Coltrane, I can't find your keys here. 
 
 
-Tempo estimation{.storyboard}
-===============================================================================
 
-
-```{r eval=FALSE, include=FALSE}
-blaNight <- get_tidy_audio_analysis("4Am0Hjzk17bVolHRiKtaPy")
-
-# blaNight %>% 
-#   tempogram(window_size = 4, hop_size = 1, cyclic = FALSE) %>%
-#   ggplot(aes(x = time, y = bpm, fill = power)) +
-#   geom_raster() +
-#   scale_fill_viridis_c(guide = "none") +
-#   labs(x = "Time (s)", y = "Tempo (BPM)") +
-#   theme_classic()
-```
-
-##### Unfortunate Message ####
-
-Unfortunately my laptop kept crashing when trying to make tempograms. I am going to look into this because I would like to include them into my portfolio. 
 
 
 Clustering comparisson to daily mixes {.storyboard}
@@ -1372,20 +1375,6 @@ I should also train a classifier to daily mixes to actually find out where the d
 ***
 
 
-Estimating listen History from discover weeklies 
-================================================
-Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
-
-Discover weekly as a sum of x daily mixes
-
-.... 
-
-Discover weekly as a sum of 6 clusters for each day
-
-(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
-
-....
-
 ```{r eval=FALSE, include=FALSE}
 get_my_recently_played(limit=50,after= 	1611064958) %>% 
     mutate(artist.name = map_chr(track.artists, function(x) x$name[1])) %>% 
@@ -1478,7 +1467,6 @@ VE0702cl <- tracks0702cl %>%
   
   
 ```
-This is an example. It also shows that energy and valence are not the most important features 
 
 ```{r eval=FALSE, include=FALSE}
 tracks_rec <-
@@ -1526,9 +1514,126 @@ tracks0702_forest <-
 
 
 
+Estimating listen History from discover weeklies 
+================================================
+Unfortunately spotify's recently played does not let you see past the last 50 recently played songs. This is unfortunate because I could have used this for a classification task to determine what songs I have listened to. It is however possible to do this in another fashion. If we take the daily mixes and make a formula (weekly = daily1A * w1 + daily1B * w2+....) then it should be possible to fit these weights to the weekly mixes. 
+
+Discover weekly as a sum of x daily mixes
+
+.... 
+
+Discover weekly as a sum of 6 clusters for each day
+
+(Calculating MFCC for 10000 songs(2986 unique (jesus I am repetitive)) is going to take a day or two)
+
+....
 
 
 
+```{r}
+tracksMFCC <- tracks %>% 
+  count(track.uri,key) %>%
+  select(track.uri,key) %>% 
+  add_audio_analysis() %>%
+  mutate(
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean"
+      )
+  ) %>%
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) %>%
+  mutate_at(vars(pitches, timbre), map, bind_rows) %>%
+  unnest(cols = c(pitches, timbre))
+```
+
+```{r}
+track_feats <- tracks %>% 
+  inner_join(tracksMFCC %>% select(-key) %>%  rename(track.id = track.uri))
+```
+
+```{r}
+feats = c(
+  "playlist_name",
+  "Day",
+  "energy",
+  "loudness",
+  "speechiness",
+  "acousticness", 
+  "instrumentalness",
+  "liveness",
+  "valence",
+  "tempo",
+  "track.duration_ms",
+  "c01", "c02", "c03", "c04", "c05", "c06", "c07" , "c08", "c09", "c10", "c11", "c12",
+  "C", "C#|Db", "D", "D#|Eb", "E", "F", "F#|Gb", "G", "G#|Ab", "A", "A#|Bb", "B"
+)
+W7All <- track_feats %>% 
+  filter(Weeknmbr == 6,type=="Daily Mix") %>% 
+  bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
+  select(feats) %>% 
+  rename(
+    "Db" = "C#|Db",
+    "Eb" = "D#|Eb",
+    "Gb" = "F#|Gb",
+    "Ab" = "G#|Ab",
+    "Bb" = "A#|Bb"
+  ) %>% 
+  mutate(
+    energy = scale(energy),
+    loudness = scale(loudness),
+    speechiness = scale(speechiness),
+    acousticness = scale(acousticness), 
+    instrumentalness = scale(instrumentalness),
+    liveness = scale(liveness),
+    valence = scale(valence),
+    tempo = scale(tempo),
+    track.duration_ms = scale(track.duration_ms),
+    c01 = scale(c01), c02 = scale(c02), c03 = scale(c03), c04 = scale(c04), c05 = scale(c05),
+    c06 = scale(c06), c07 = scale(c07), c08 = scale(c08), c09 = scale(c09), c10 = scale(c10),
+    c11 = scale(c11), c12 = scale(c12),
+    C = scale(C), Db = scale(Db), D = scale(D), Eb = scale(Eb), E = scale(E), F = scale(F), Gb = scale(Gb), G = scale(G), 
+    Ab = scale(Ab), A = scale(A), Bb = scale(Bb), B = scale(B)
+  ) 
+  
+
+W7 <- W7All %>% 
+  group_by(Day,playlist_name) %>% 
+  summarise_all(mean) %>% 
+  ungroup()
+```
 
 
+```{r}
+W7All
+W7
+```
+
+
+```{r}
+W7A <- W7[-nrow(W7),] %>% 
+  select(-playlist_name,-Day) %>% 
+  as.matrix()
+
+W7b <- W7[nrow(W7),] %>% 
+  select(-playlist_name,-Day) %>% 
+  as.matrix() %>% 
+  t()
+
+ATA <- W7A %*% t(W7A)
+ATb <- W7A %*% W7b
+
+w <- solve(ATA,ATb,tol = 1e-19)
+w
+```
+```{r}
+nnls(t(W7A),W7b)$x
+```
 
