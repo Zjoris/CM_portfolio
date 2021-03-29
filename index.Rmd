@@ -1,6 +1,5 @@
 ---
 title: "Computational Musicology Portfolio"
-author: "Joris Galema"
 output: 
   flexdashboard::flex_dashboard:
     theme: journal
@@ -26,7 +25,7 @@ output:
 
 Overview
 =============================
-### Analysing daily mixes and discover weekly playlists
+### Analysing daily mixes and discover weekly playlists 
 
 
 As an active Spotify user I often contemplate about maintaining an enormous playlist of songs that I like. However, in my opinion, if you really like a song you'll remember it, so there is no need for a playlist to remind you of what songs you like.
@@ -175,10 +174,11 @@ W %>%
 
 ***
 
-In terms of energy/valence the two discover weeklies are distributed fairly similar.
-However Weekly 1 is more scattered whereas weekly 2 can be divided into two groups (seen in next plot). Loudness is pretty much the same among all songs. 
-Both playlists consist of mostly major songs which, honestly, was to my surprise. 
+In terms of energy/valence the discover weeklies are distributed fairly similar.
+Some deviations are for instance week 4 and week 6, that seems to have its energy more concentrated in the center. Week 6 also seems to be more optimistic in general. 
+All playlists consist of mostly major songs which, honestly, was to my surprise. 
 Something interesting in weekly 2 is that the songs with highest valence and highest energy are songs in a minor key.
+Also week 7 shows something remarkable. The happiest most energetic songs here seem to be in the minor keys whilst the songs with lower energy and lower valence seem to be in a major key. 
 
 
 ### Change of energy in songs in the discover weekly playlists
@@ -186,6 +186,10 @@ Something interesting in weekly 2 is that the songs with highest valence and hig
 W %>%
   ggplot(aes(x = Weeknmbr,y=energy)) + geom_violin()
 ```
+
+***
+
+In this violin graph you can clearly see that Discover Weekly 4 and 6 have their energy more concentrated whilst the others have it more evenly distributed. 
 
 
 ### Keys 
@@ -215,7 +219,7 @@ W %>%
 
 ***
 
-Weekly 1 seems to be mostly in "A". This makes sense because the songs in that playlist have a lot more simplicity to them. And A is a pretty "go to" key in my opinion.
+It's interesting to see how my discover weekly playlists seem to start with more peaks regarding the keys they are in. In the third week the peaks have sort of disappeared, then week 4 is mostly in B minor and G major. After this it seems to be relatively evenly distributed for the remaining weeks. D minor and D# minor appear to occur the least amount of times. 
 
 
 ### Tempo
@@ -225,6 +229,12 @@ W %>%
   ggplot(aes(tempo)) +geom_histogram(fill="red",color="white",alpha=0.8,bins=15) + facet_wrap(~Weeknmbr)
 ```
 
+*** 
+
+Some thing I like to be seeing is that the third week's discover weekly playlists seem to have an almost gaussian distribution around 125 bpm. This is nice because it coincides with the paper by Moelants and Dirk about prefered tempo. 
+
+However, week 6 and 7 show something quite different, being much slower and centered around 100 bpm, which was the idea of preferred tempo before this paper.
+
 ### Loudness
 
 ```{r}
@@ -232,13 +242,15 @@ W %>%
   ggplot(aes(loudness)) +geom_histogram(fill="blue",color="white",alpha=0.8,bins=15) + facet_wrap(~Weeknmbr)
 ```
 
+***
 
+In terms of loudness it remains fairly constant across the weeks with one clear outlier being week 3 having a peak at around -7.5 Db. 
 
 
 Daily v Weekly
 ================================================================
 
-Column{.tabset .data-width = 600}
+Column{.tabset}
 -------------------------------------------------------
 
 ```{r eval=FALSE, include=FALSE}
@@ -655,19 +667,33 @@ ValEner7
 ```
 
 
-Column {data-width = 200}
+Column 
 ----------------------------------------------------------
 ### Some Explanation
-Weeks 1-3 energy valence mean of DW playlists in the middle of means for daily mixes.
-Week 4 DW playlist mean outside of the daily mixes 
+Here you can see energy and valence plotted against eachother for each week of playlists. You can see the daily mixes and filter on the date for the daily mixes. Furthermore the discover weekly playlist for that week is always shown. 
+
+What I find interesting to see is that the mean of the discover weekly playlists is often in the middle of the means of the daily mixes. So you could say that the discover weekly is right in the middle of everything.
+
+This means that a discover weekly playlist can be interpreted as a linear combination of Daily mixes, this we can use for estimation, but more on that later. 
+
+However, do note for instance the discover weekly playlist of week 4. It is far more in the top right than the daily mixes. 
+
+All in all, the playlists are distributed fairly similar so it is likely that we will be needing more features for our goal. 
 
 
 Chroma Features{.storyboard}
 =====================================================================
+
 ### Chromagraphs for two versions of Paranoid android
 
 
 #### Radiohead
+
+***
+
+Chromagrams are useful graphs that show how chroma is distributed over the song. These chroma features are useful when we are thinking in terms of pitch and key. 
+
+Here you can see a chromagram of two songs of which one is an instrumental cover of the other (Radiohead made the original).
 
 ```{r eval=FALSE, include=FALSE}
 song <-
@@ -887,121 +913,11 @@ Even though when you listen to both songs you can immediately link them (probabl
 
 Still, when I listen to these two covers I feel that they are more similar than the two "Paranoid Android" versions which does contain some clearer warping paths (upper right area)
 
+From this we can conclude that finding similarity between songs is not as easy as you may think and that just knowing what the pitches are will not be enough. Apparently some cover songs that are completely different in instruments can be more similar than two covers that share the instruments and lyrics but are performed quite differently. But of course, we haven't accounted for timbre features yet.
+
 (Side note if you don't know the Roy Buchanan version and you like the Jimi Hendrix version really give Roy's version a listen)
 
 
-### Twelve bar blues 
-
-```{r eval=FALSE, include=FALSE}
-Cantquit <- get_tidy_audio_analysis("62QInSlXQI11BR9ycVWjd6") %>%
-  select(segments) %>%
-  unnest(segments) %>%
-  select(start, duration, pitches)
-  
-Thrill <- get_tidy_audio_analysis("4NQfrmGs9iQXVQI9IpRhjM") %>%
-  select(segments) %>%
-  unnest(segments) %>%
-  select(start, duration, pitches)
-
-Crossroads <- get_tidy_audio_analysis("6PUabSMXmPnZna361Wwmf7") %>%
-  select(segments) %>%
-  unnest(segments) %>%
-  select(start, duration, pitches)
-```
-
-#### Crossroads by Cream
-
-```{r eval=FALSE, include=FALSE}
-chromagram5 <- Crossroads %>%
-  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
-  compmus_gather_chroma() %>% 
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = pitch_class,
-      fill = value
-    )
-  ) +
-  geom_tile() +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  ggtitle("the Crossroads by Cream") +
-  theme_minimal() +
-  scale_fill_viridis_c()
-```
-
-```{r}
-chromagram5
-```
-
-
-#### I can't quit you baby by Led Zeppelin
-
-```{r eval=FALSE, include=FALSE}
-chromagram6 <- Cantquit %>%
-  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) %>%
-  compmus_gather_chroma() %>% 
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = pitch_class,
-      fill = value
-    )
-  ) +
-  geom_tile() +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  ggtitle("I Cant Quit You Baby by Led Zeppelin ") +
-  theme_minimal() +
-  scale_fill_viridis_c()
-```
-
-```{r}
-chromagram6
-```
-
-
-### DTW
-
-```{r eval=FALSE, include=FALSE}
-dtw3 <- compmus_long_distance(
-  Crossroads %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
-  Cantquit %>% mutate(pitches = map(pitches, compmus_normalise, "euclidean")),
-  feature = pitches,
-  method = "aitchison"
-) %>%
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_equal() +
-  labs(x = "Crossroads", y = "I Can't quit you baby") +
-  ggtitle("Twelve Bar Blues") +
-  theme_minimal() +
-  scale_fill_viridis_c(guide = NULL)
-```
-
-```{r}
-dtw3
-```
-
-
-*** 
-
-I'm pretty sure there is a example that shows two 12 bar blues tracks with a really visible dtw line. But I haven't found the example yet. 
-
-
-### Concluding thoughts
-
-Covers don't have to sound like eachother. (Will expand in the future)
-
-I Am pretty sure I will be removing this because I do not think this will be interesting for my portfolio. However analysis of chroma might be useful for similarity measures (Turning every DTW into a number by summing all the distances or something to see how similar two songs are chroma wise (very costly though)). 
 
 
 <!-- Check daily mix A (25/02). It contains Roy Buchannan, fugazi, steppenwolf and black sabbath (it's a mess).  -->
@@ -1279,143 +1195,143 @@ On the other hand there is Heather that has a very organized chromagram that loo
 
 
 
-Key Estimation
-===========================
+<!-- Key Estimation -->
+<!-- =========================== -->
 
-Column
-----------------------------------------------------------
+<!-- Column -->
+<!-- ---------------------------------------------------------- -->
 
-```{r eval=FALSE, include=FALSE}
-circshift <- function(v, n) {
-  if (n == 0) v else c(tail(v, n), head(v, -n))
-}
+<!-- ```{r eval=FALSE, include=FALSE} -->
+<!-- circshift <- function(v, n) { -->
+<!--   if (n == 0) v else c(tail(v, n), head(v, -n)) -->
+<!-- } -->
 
-#      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
-major_chord <-
-  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
-minor_chord <-
-  c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
-seventh_chord <-
-  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+<!-- #      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B -->
+<!-- major_chord <- -->
+<!--   c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0) -->
+<!-- minor_chord <- -->
+<!--   c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0) -->
+<!-- seventh_chord <- -->
+<!--   c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0) -->
 
-major_key <- c(5.0, 2.0, 3.5, 2.0, 4.5, 4.0, 2.0, 4.5, 2.0, 3.5, 1.5, 4.0) 
-minor_key <- c(5.0, 2.0, 3.5, 4.5, 2.0, 4.0, 2.0, 4.5, 3.5, 2.0, 1.5, 4.0) 
+<!-- major_key <- c(5.0, 2.0, 3.5, 2.0, 4.5, 4.0, 2.0, 4.5, 2.0, 3.5, 1.5, 4.0)  -->
+<!-- minor_key <- c(5.0, 2.0, 3.5, 4.5, 2.0, 4.0, 2.0, 4.5, 3.5, 2.0, 1.5, 4.0)  -->
 
-chord_templates <-
-  tribble(
-    ~name, ~template,
-    "Gb:7", circshift(seventh_chord, 6),
-    "Gb:maj", circshift(major_chord, 6),
-    "Bb:min", circshift(minor_chord, 10),
-    "Db:maj", circshift(major_chord, 1),
-    "F:min", circshift(minor_chord, 5),
-    "Ab:7", circshift(seventh_chord, 8),
-    "Ab:maj", circshift(major_chord, 8),
-    "C:min", circshift(minor_chord, 0),
-    "Eb:7", circshift(seventh_chord, 3),
-    "Eb:maj", circshift(major_chord, 3),
-    "G:min", circshift(minor_chord, 7),
-    "Bb:7", circshift(seventh_chord, 10),
-    "Bb:maj", circshift(major_chord, 10),
-    "D:min", circshift(minor_chord, 2),
-    "F:7", circshift(seventh_chord, 5),
-    "F:maj", circshift(major_chord, 5),
-    "A:min", circshift(minor_chord, 9),
-    "C:7", circshift(seventh_chord, 0),
-    "C:maj", circshift(major_chord, 0),
-    "E:min", circshift(minor_chord, 4),
-    "G:7", circshift(seventh_chord, 7),
-    "G:maj", circshift(major_chord, 7),
-    "B:min", circshift(minor_chord, 11),
-    "D:7", circshift(seventh_chord, 2),
-    "D:maj", circshift(major_chord, 2),
-    "F#:min", circshift(minor_chord, 6),
-    "A:7", circshift(seventh_chord, 9),
-    "A:maj", circshift(major_chord, 9),
-    "C#:min", circshift(minor_chord, 1),
-    "E:7", circshift(seventh_chord, 4),
-    "E:maj", circshift(major_chord, 4),
-    "G#:min", circshift(minor_chord, 8),
-    "B:7", circshift(seventh_chord, 11),
-    "B:maj", circshift(major_chord, 11),
-    "D#:min", circshift(minor_chord, 3)
-  )
+<!-- chord_templates <- -->
+<!--   tribble( -->
+<!--     ~name, ~template, -->
+<!--     "Gb:7", circshift(seventh_chord, 6), -->
+<!--     "Gb:maj", circshift(major_chord, 6), -->
+<!--     "Bb:min", circshift(minor_chord, 10), -->
+<!--     "Db:maj", circshift(major_chord, 1), -->
+<!--     "F:min", circshift(minor_chord, 5), -->
+<!--     "Ab:7", circshift(seventh_chord, 8), -->
+<!--     "Ab:maj", circshift(major_chord, 8), -->
+<!--     "C:min", circshift(minor_chord, 0), -->
+<!--     "Eb:7", circshift(seventh_chord, 3), -->
+<!--     "Eb:maj", circshift(major_chord, 3), -->
+<!--     "G:min", circshift(minor_chord, 7), -->
+<!--     "Bb:7", circshift(seventh_chord, 10), -->
+<!--     "Bb:maj", circshift(major_chord, 10), -->
+<!--     "D:min", circshift(minor_chord, 2), -->
+<!--     "F:7", circshift(seventh_chord, 5), -->
+<!--     "F:maj", circshift(major_chord, 5), -->
+<!--     "A:min", circshift(minor_chord, 9), -->
+<!--     "C:7", circshift(seventh_chord, 0), -->
+<!--     "C:maj", circshift(major_chord, 0), -->
+<!--     "E:min", circshift(minor_chord, 4), -->
+<!--     "G:7", circshift(seventh_chord, 7), -->
+<!--     "G:maj", circshift(major_chord, 7), -->
+<!--     "B:min", circshift(minor_chord, 11), -->
+<!--     "D:7", circshift(seventh_chord, 2), -->
+<!--     "D:maj", circshift(major_chord, 2), -->
+<!--     "F#:min", circshift(minor_chord, 6), -->
+<!--     "A:7", circshift(seventh_chord, 9), -->
+<!--     "A:maj", circshift(major_chord, 9), -->
+<!--     "C#:min", circshift(minor_chord, 1), -->
+<!--     "E:7", circshift(seventh_chord, 4), -->
+<!--     "E:maj", circshift(major_chord, 4), -->
+<!--     "G#:min", circshift(minor_chord, 8), -->
+<!--     "B:7", circshift(seventh_chord, 11), -->
+<!--     "B:maj", circshift(major_chord, 11), -->
+<!--     "D#:min", circshift(minor_chord, 3) -->
+<!--   ) -->
 
-key_templates <-
-  tribble(
-    ~name, ~template,
-    "Gb:maj", circshift(major_key, 6),
-    "Bb:min", circshift(minor_key, 10),
-    "Db:maj", circshift(major_key, 1),
-    "F:min", circshift(minor_key, 5),
-    "Ab:maj", circshift(major_key, 8),
-    "C:min", circshift(minor_key, 0),
-    "Eb:maj", circshift(major_key, 3),
-    "G:min", circshift(minor_key, 7),
-    "Bb:maj", circshift(major_key, 10),
-    "D:min", circshift(minor_key, 2),
-    "F:maj", circshift(major_key, 5),
-    "A:min", circshift(minor_key, 9),
-    "C:maj", circshift(major_key, 0),
-    "E:min", circshift(minor_key, 4),
-    "G:maj", circshift(major_key, 7),
-    "B:min", circshift(minor_key, 11),
-    "D:maj", circshift(major_key, 2),
-    "F#:min", circshift(minor_key, 6),
-    "A:maj", circshift(major_key, 9),
-    "C#:min", circshift(minor_key, 1),
-    "E:maj", circshift(major_key, 4),
-    "G#:min", circshift(minor_key, 8),
-    "B:maj", circshift(major_key, 11),
-    "D#:min", circshift(minor_key, 3)
-  )
-```
+<!-- key_templates <- -->
+<!--   tribble( -->
+<!--     ~name, ~template, -->
+<!--     "Gb:maj", circshift(major_key, 6), -->
+<!--     "Bb:min", circshift(minor_key, 10), -->
+<!--     "Db:maj", circshift(major_key, 1), -->
+<!--     "F:min", circshift(minor_key, 5), -->
+<!--     "Ab:maj", circshift(major_key, 8), -->
+<!--     "C:min", circshift(minor_key, 0), -->
+<!--     "Eb:maj", circshift(major_key, 3), -->
+<!--     "G:min", circshift(minor_key, 7), -->
+<!--     "Bb:maj", circshift(major_key, 10), -->
+<!--     "D:min", circshift(minor_key, 2), -->
+<!--     "F:maj", circshift(major_key, 5), -->
+<!--     "A:min", circshift(minor_key, 9), -->
+<!--     "C:maj", circshift(major_key, 0), -->
+<!--     "E:min", circshift(minor_key, 4), -->
+<!--     "G:maj", circshift(major_key, 7), -->
+<!--     "B:min", circshift(minor_key, 11), -->
+<!--     "D:maj", circshift(major_key, 2), -->
+<!--     "F#:min", circshift(minor_key, 6), -->
+<!--     "A:maj", circshift(major_key, 9), -->
+<!--     "C#:min", circshift(minor_key, 1), -->
+<!--     "E:maj", circshift(major_key, 4), -->
+<!--     "G#:min", circshift(minor_key, 8), -->
+<!--     "B:maj", circshift(major_key, 11), -->
+<!--     "D#:min", circshift(minor_key, 3) -->
+<!--   ) -->
+<!-- ``` -->
 
-### Giant Steps Keydograph ###
-```{r}
-gStep <- twenty_five <-
-  get_tidy_audio_analysis("18KSLe1ScEmgFt1XnyRSCV") %>%
-  compmus_align(bars, segments) %>%
-  select(bars) %>%
-  unnest(bars) %>%
-  mutate(
-    pitches =
-      map(segments,
-        compmus_summarise, pitches,
-        method = "rms", norm = "euclidean"
-      )
-  )
+<!-- ### Giant Steps Keydograph ### -->
+<!-- ```{r} -->
+<!-- gStep <- twenty_five <- -->
+<!--   get_tidy_audio_analysis("18KSLe1ScEmgFt1XnyRSCV") %>% -->
+<!--   compmus_align(bars, segments) %>% -->
+<!--   select(bars) %>% -->
+<!--   unnest(bars) %>% -->
+<!--   mutate( -->
+<!--     pitches = -->
+<!--       map(segments, -->
+<!--         compmus_summarise, pitches, -->
+<!--         method = "rms", norm = "euclidean" -->
+<!--       ) -->
+<!--   ) -->
 
-gStep %>% compmus_match_pitch_template(
-    key_templates,         # Change to chord_templates if descired
-    method = "angular",  # Try different distance metrics
-    norm = "euclidean"     # Try different norms
-  ) %>%
-  ggplot(
-    aes(x = start + duration / 2, width = duration, y = name, fill = d)
-  ) +
-  geom_tile() +
-  scale_fill_viridis_c(guide = "none") +
-  theme_minimal() +
-  labs(x = "Time (s)", y = "") + 
-  ggtitle("Giant Steps by John Coltrane")
-```
+<!-- gStep %>% compmus_match_pitch_template( -->
+<!--     key_templates,         # Change to chord_templates if descired -->
+<!--     method = "angular",  # Try different distance metrics -->
+<!--     norm = "euclidean"     # Try different norms -->
+<!--   ) %>% -->
+<!--   ggplot( -->
+<!--     aes(x = start + duration / 2, width = duration, y = name, fill = d) -->
+<!--   ) + -->
+<!--   geom_tile() + -->
+<!--   scale_fill_viridis_c(guide = "none") + -->
+<!--   theme_minimal() + -->
+<!--   labs(x = "Time (s)", y = "") +  -->
+<!--   ggtitle("Giant Steps by John Coltrane") -->
+<!-- ``` -->
 
-Column
-----------------------------------------------------------
+<!-- Column -->
+<!-- ---------------------------------------------------------- -->
 
-### Giant Steps ###
+<!-- ### Giant Steps ### -->
 
 
-Giant steps is notorious for its intricate key changes, changing key 10 times throughout the song and changing between B, Eb and G, all major thirds apart. 
+<!-- Giant steps is notorious for its intricate key changes, changing key 10 times throughout the song and changing between B, Eb and G, all major thirds apart.  -->
 
-In the keydograph (?) you can see that it is hard to tell what key the song is in.
+<!-- In the keydograph (?) you can see that it is hard to tell what key the song is in. -->
 
-The most apparent key in the keydograph is Cmaj which is a semitone above the key the song starts in. Why exactly this is I do not know. 
+<!-- The most apparent key in the keydograph is Cmaj which is a semitone above the key the song starts in. Why exactly this is I do not know.  -->
 
-It is possible that due to the melody, that often wanders away from the notes of the current key, different notes get emphasized causing the assumption of a different key. Combining this with the many key changes, this might be why the keys are all over the place.
+<!-- It is possible that due to the melody, that often wanders away from the notes of the current key, different notes get emphasized causing the assumption of a different key. Combining this with the many key changes, this might be why the keys are all over the place. -->
 
-Conclusion: Sorry mr. Coltrane, I can't find your keys here. 
+<!-- Conclusion: Sorry mr. Coltrane, I can't find your keys here.  -->
 
 
 
@@ -1593,7 +1509,7 @@ Let's take a look.
 
 
 ```{r}
-tracks0702_forest %>% get_pr()
+tracks0702_forest %>% get_pr() %>% kable()
 
 ```
 
@@ -1653,9 +1569,9 @@ ggarrange(p3, p4,
 
 *** 
 
-Interesting to see that mode almost completely seperates two groups of three clusters while the actual playlists are distributed equally among the modes. This discriminative power of "mode" is probably due to its binary nature. Possibly I should combine key and mode to get a feature that consists of all 24 possibilities of key_modes. 
+Interesting to see that mode completely seperates two groups of clusters while the actual playlists are distributed equally among the modes. This discriminative power of "mode" is probably due to its binary nature. 
 
-I should also train a classifier to daily mixes to actually find out where the daily mixes make their decisions but it is 30 minutes before the deadline currently. 
+<!-- Possibly I should combine key and mode to get a feature that consists of all 24 possibilities of key_modes.  -->
 
 ***
 
@@ -1682,8 +1598,10 @@ Estimating listen History from discover weeklies{.storyboard}
 
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 tracksMFCC <- tracks %>% 
+  filter(Weeknmbr == 6,type=="Daily Mix") %>% 
+  bind_rows(tracks %>% filter(playlist_name == "Weekly7")) %>% 
   count(track.uri,key) %>%
   select(track.uri,key) %>% 
   add_audio_analysis() %>%
@@ -1706,12 +1624,14 @@ tracksMFCC <- tracks %>%
   unnest(cols = c(pitches, timbre))
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 track_feats <- tracks %>% 
+  filter(Weeknmbr == 6,type=="Daily Mix") %>% 
+  bind_rows(tracks %>% filter(playlist_name == "Weekly7")) %>% 
   inner_join(tracksMFCC %>% select(-key) %>%  rename(track.id = track.uri))
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 feats = c(
   "playlist_name",
   "Day",
@@ -1728,8 +1648,8 @@ feats = c(
   "C", "C#|Db", "D", "D#|Eb", "E", "F", "F#|Gb", "G", "G#|Ab", "A", "A#|Bb", "B"
 )
 W7All <- track_feats %>% 
-  filter(Weeknmbr == 6,type=="Daily Mix") %>% 
-  bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
+  #filter(Weeknmbr == 6,type=="Daily Mix") %>% 
+  #bind_rows(track_feats %>% filter(playlist_name == "Weekly7")) %>% 
   select(all_of(feats)) %>% 
   rename(
     "Db" = "C#|Db",
@@ -1790,25 +1710,25 @@ Below you can see a table consisting of one week of daily mixes and a discover w
 
 ```{r}
 W7All %>% 
-  kbl() %>% 
-  kable_styling(fixed_thead = T)
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(10,25,50,-1),c(10,25,50,"All"))))
 
 ```
 
-#### features on playlist level
 
-***
+### features on playlist level
 
-However, we are interested in the way playlist listen history and not track listen history. For simplicity we can take the mean of each feature for every playlist, resulting in the following feature space:
 
 
 ```{r}
   
 W7 %>% 
-  kbl() %>%
-  #kable_material(c("striped", "hover")) %>% 
-  kable_styling(fixed_thead = T)
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(10,25,50,-1),c(10,25,50,"All"))))
 ```
+
+
+***
+
+However, we are interested in the way playlist listen history and not track listen history. For simplicity we can take the mean of each feature for every playlist, resulting in the following feature space:
 
 
 
@@ -1824,18 +1744,19 @@ $DW =  DM_A^1 * W_1 + DM_B^1 * W_2 +...+ DM_F^7*W_{42}$
 
 which, from the table, reduces to:
 
-$\begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ ... \\ B_{DW} \end{bmatrix} =\begin{bmatrix} energy_{DM_A^1} \\ loudness_{DM_A^1} \\ ... \\ B_{DM_A^1} \end{bmatrix} *W_1 + .... +  \begin{bmatrix} energy_{DM_F^7} \\ loudness_{DM_F^7} \\ ... \\ B_{DM_F^7} \end{bmatrix} * W_{42} $
+$$\begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ ... \\ B_{DW} \end{bmatrix} =\begin{bmatrix} energy_{DM_A^1} \\ loudness_{DM_A^1} \\ ... \\ B_{DM_A^1} \end{bmatrix} *W_1 + .... +  \begin{bmatrix} energy_{DM_F^7} \\ loudness_{DM_F^7} \\ ... \\ B_{DM_F^7} \end{bmatrix} * W_{42} $$
 
 Now without getting to deep into linear algebra, because there most likely is no optimal solution we need to perform a least squares estimation. For this we need to reformulate this equation as a matrix equation which looks like: 
 
-$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix}= \begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ \vdots \\ B_{DW} \end{bmatrix}$
+$$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix}= \begin{bmatrix} energy_{DW} \\ loudness_{DW} \\ \vdots \\ B_{DW} \end{bmatrix}$$
 
 Where each $DM$ is a vector of all the features. 
 To perform a least squares estimate we need to multiply each side by the Transpose of our Daily Mix feature matrix and then solve for the vector of weights: 
 
-$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \times \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix} = \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times DW$
+$$\begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix} \times \begin{bmatrix} W_1 \\ W_2 \\ \vdots \\ W_{42} \end{bmatrix} = \begin{bmatrix} DM_A^1 & DM_B^1 & ... & DM_F^7\end{bmatrix}^T \times DW$$
 
-This results in the following weights:
+### Calculated weights
+
 
 ```{r}
 W7A <- W7[-nrow(W7),] %>% 
@@ -1854,34 +1775,37 @@ w <- solve(ATA,ATb,tol = 1e-19)
 
 W7[-nrow(W7),] %>% 
   select(playlist_name) %>% 
-  mutate(weight = w) %>% 
-  kbl() %>%
-  kable_material(c("striped", "hover")) %>% 
-  kable_styling(fixed_thead = T)
+  mutate(weight = w)%>% 
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(6,12,24,48,-1),c(6,12,24,48,"All"))))
 ```
-
-#### Non negative least squares
 
 ***
 
-However, coming back to reality from our sidestep into linear algebra. Negative values really do not make sense in this situation. A negative value would suggest that I intentionally ignored several playlists, which could be the case but I doubt spotify can measure this. 
+However, coming back to reality from our sidestep into linear algebra. Something to be said is that the use of mathematics is nice but it is important to keep it relevant. And negative values really do not make sense in this situation. A negative value would suggest that I intentionally ignored several playlists, which could be the case but I doubt spotify can measure this. 
 
-Luckily I found a package online called "nnls" (non negative least squares) which calculates the least squares estimate using only positive values. 
+### Non negative least squares
 
-This resulted in the following weights: 
+
 
 ```{r}
 nonneg <- nnls(t(W7A),W7b)
 
 W7[-nrow(W7),] %>% 
   select(playlist_name) %>% 
-  mutate(weight = nonneg$x) %>% 
-  kbl() %>%
-  kable_material(c("striped", "hover")) %>% 
-  kable_styling(fixed_thead = T)
+  mutate(weight = nonneg$x) %>%
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(6,12,24,48,-1),c(6,12,24,48,"All"))))
 ```
 
 
+***
+
+Luckily I found a package online called "nnls" (non negative least squares) which calculates the least squares estimate using only positive values. 
+
+Unfortunately spotify's recently played function does not let you see past the last 50 recently played songs so I do not know if these predictions are truly correct. But just looking at the weights do give me some confidence that they are not too bad. I usually listen to about three discover weeklies a day and sometimes I listen to all of them on a day but just a little bit of them all, or one daily mix more than the other. It looks like the weights do represent this. 
+
+Something that I do have to add and might be something to look into in the future is that the weights are not distributed equally among all days. As in: some days have a lot more weight to them than others. This could make sense, some days you listen to music less than others. However, all days should be treated equally. 
+
+Let's take a look at how well the weights approximate the discover weekly mix.
 
 ### What does it mean and how well did it do
 
@@ -1895,26 +1819,28 @@ W7b %>%
          "LS resids" = V1 - t(W7A) %*% w,
          "Non negative fit" = nonneg$fitted,
          "NNLS resids" = nonneg$residuals) %>% 
-  rename(DW = V1)
+  rename(DW = V1) %>%
+  datatable(extensions = "Buttons", options = list(dom="Blfrtip",buttons = c('copy','csv','print'),lengthMenu = list(c(12,24,48,-1),c(12,24,48,"All"))))
         
 ```
 
+
 ***
+As you can see in the table, both least square methods perform pretty good when fitting for the discover weekly playlist. 
 
-Unfortunately spotify's recently played function does not let you see past the last 50 recently played songs. This is unfortunate because this makes it harder to determine whether the predictions are correct. But just looking at the weights may allready say something. 
-
-
+The sum of squared error for the regular least square method is :
 
 ```{r}
-nonneg$deviance
-
 sum((t(W7A) %*% w-W7b)**2)
 ```
 
+Whilst non negative least square gets: 
 
+```{r}
+nonneg$deviance
+```
 
-Which begs to say: sometimes the optimal parameters do not make sense in reality and it is important to keep mathematics relevant to what you are trying to discover. 
-
+This came to my suprise because the non negative least square method has more limitations (because it's not allowed to be negative). This makes me think that my implementation of Least Squares may be flawed. But it also makes me happy that the more sensible approach with more realistic data performs better. 
 
 
 
